@@ -340,6 +340,20 @@ function html() {
   .card a { color: var(--accent); text-decoration: none; font-size: 12px; }
   .card a:hover { text-decoration: underline; }
   .citizen { font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; margin-top: 6px; opacity: 0.7; }
+  .jargon {
+    border-bottom: 1px dotted var(--accent); cursor: help; position: relative;
+    outline: none;
+  }
+  .jargon .tooltip {
+    display: none; position: absolute; left: 0; top: calc(100% + 8px);
+    width: 280px; max-width: 80vw; background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+    font-size: 12px; line-height: 1.5; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 60; white-space: normal; cursor: auto; text-align: left;
+  }
+  .jargon:hover .tooltip, .jargon:focus .tooltip, .jargon.show .tooltip { display: block; }
+  .jargon .tooltip strong { display: block; color: var(--accent); font-size: 13px; margin-bottom: 6px; }
+  .jargon .tooltip .tt-label { color: var(--muted); font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 8px; }
   .empty { color: var(--muted); padding: 40px; text-align: center; }
   .xref-related { margin: 8px 0 0 0; padding: 10px 14px; border-left: 3px solid var(--policy); background: color-mix(in srgb, var(--policy) 8%, transparent); border-radius: 0 8px 8px 0; }
   .xref-related .rel-title { font-size: 12px; font-weight: 700; color: var(--policy); margin-bottom: 6px; }
@@ -402,6 +416,7 @@ function html() {
   <div class="panel" id="panel-policy"></div>
   <div class="panel" id="panel-xref"></div>
 </main>
+<script src="/jargon.js"></script>
 <script>
 let DATA = { agendaItems: [], ordinances: [], pilotCity: "san-mateo" };
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
@@ -420,10 +435,6 @@ async function load() {
     \`<option value="\${ALL_CITIES}" selected>All ingested cities (San Mateo County)</option>\` +
     cities.map(c => \`<option value="\${c}">\${c}\${c === DATA.pilotCity ? " (pilot)" : ""}</option>\`).join("");
   render();
-}
-
-function escapeHtml(s) {
-  return (s || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 }
 
 const MECHANISM_LABELS = {
@@ -538,6 +549,8 @@ function render() {
         : \`<div class="xref-related"><div class="rel-title">Related policy actions</div><div class="rel-item">No matching ordinance citizens ingested yet for \${b.city} — cross-reference will populate as /fundamental-ingestion adds af:adopted-ordinance instances for this city.</div></div>\`);
     }).join("");
   }
+
+  annotateJargon(document.querySelector("main"));
 }
 
 // The Participate tab is a chronological action timeline, not a flat list:
@@ -640,6 +653,7 @@ document.getElementById("refresh").addEventListener("click", load);
 document.addEventListener("change", (e) => {
   if (e.target.id === "citySelect" || e.target.id === "housingOnly") render();
 });
+annotateJargon(document.querySelector(".about-body"));
 load();
 </script>
 </body>
@@ -656,6 +670,17 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: String(err) }));
+    }
+    return;
+  }
+  if (url.pathname === "/jargon.js") {
+    try {
+      const src = await readFile(path.join(__dirname, "jargon.js"), "utf8");
+      res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
+      res.end(src);
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "text/plain" });
+      res.end(String(err));
     }
     return;
   }
