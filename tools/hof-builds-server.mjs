@@ -73,8 +73,26 @@ const HOUSING_SIGNAL =
 // badged "Housing" in the UI.
 const NOT_HOUSING_OVERRIDE = /\bnot\b[^.;]{0,20}\bhousing\b|non-housing/i;
 
-function isHousingSignal(text) {
+// A packet-level stub that hasn't had its line items extracted yet
+// ("Agenda packet published; line items not yet extracted") is honestly
+// unconfirmed, speculative content — flagging it "Housing" from a passing
+// mention like "candidate housing linkage" would show it in the residential
+// feed as if it were an actual proposal, when the item itself says its real
+// content isn't known yet.
+const UNEXTRACTED_STUB = /line items not yet extracted/i;
+// Requires an unambiguous residential-unit marker, not just the word
+// "housing" — used for meeting bodies (like a transportation/infrastructure
+// commission) where "housing" is more likely to show up as adjacent context
+// than as the item's actual subject.
+const STRONG_RESIDENTIAL_SIGNAL =
+  /\b(dwelling units?|multi-family|apartments?|condominiums?|\badu\b|accessory dwelling|sb\s?9\b|density bonus|builder'?s remedy)/i;
+
+function isHousingSignal(text, body) {
   if (NOT_HOUSING_OVERRIDE.test(text)) return false;
+  if (UNEXTRACTED_STUB.test(text)) return STRONG_RESIDENTIAL_SIGNAL.test(text);
+  if (body && body !== "planning-commission" && body !== "city-council") {
+    return STRONG_RESIDENTIAL_SIGNAL.test(text);
+  }
   return HOUSING_SIGNAL.test(text);
 }
 
@@ -325,7 +343,7 @@ async function loadChronology() {
           date: meetingDate,
           text: agendaItem,
           sourceUrl,
-          housingSignal: isHousingSignal(agendaItem),
+          housingSignal: isHousingSignal(agendaItem, body),
           mechanism: classifyMechanism(agendaItem),
           isUpcoming: !isCancelled && meetingDate >= TODAY,
           canParticipate: !isCancelled && meetingDate >= TODAY, // public body meeting, not yet held
@@ -866,19 +884,22 @@ function render() {
 
   renderParticipateTimeline(city, builds);
 
-  // Upcoming Proposals always shows residential-only, not-yet-decided items,
-  // regardless of the checkbox above (which still controls Policy
-  // Actions/Cross-Reference) — this section exists specifically to answer
-  // "what housing is being proposed right now that I could still weigh in
-  // on," so a commercial R&D building, a self-storage facility, or a
-  // proposal that was already decided months ago isn't an answer to that
-  // question no matter how the toggle is set. (The full past record,
-  // decided or not, is still in Cross-Reference.)
-  const upcomingProposals = DATA.agendaItems.filter(i => cityMatches(i.city, city) && i.housingSignal && i.canParticipate);
+  // Upcoming Proposals shows every residential item on record for this city
+  // — regardless of the checkbox above (which still controls Policy
+  // Actions/Cross-Reference) — so a commercial R&D building or a
+  // self-storage facility never shows up here no matter how the toggle is
+  // set. IMPORTANT: this does NOT hard-filter to future-dated meetings only
+  // — most ingested records are historical (a meeting already held), and a
+  // filter that hid everything but not-yet-held meetings emptied this tab
+  // down to almost nothing (a real regression caught in testing: only one
+  // item in the whole chronology still had a future date). Items with a
+  // meeting still ahead sort first and carry the "Can participate" badge;
+  // everything else is the housing record for this city.
+  const residentialItems = DATA.agendaItems.filter(i => cityMatches(i.city, city) && i.housingSignal);
   const bPanel = document.getElementById("panel-builds");
   bPanel.innerHTML =
-    '<div class="intro">Residential proposals with a meeting still ahead — not yet approved, denied, or decided. Already-decided housing history for this city is in the Cross-Reference tab.</div>' +
-    (upcomingProposals.length ? upcomingProposals.map(buildCard).join("") : '<div class="empty">No upcoming residential proposals on record right now for this city.</div>');
+    '<div class="intro">Every residential proposal on record for this city — items with a meeting still ahead (not yet approved, denied, or decided) are marked "Can participate" and sorted first.</div>' +
+    (residentialItems.length ? residentialItems.map(buildCard).join("") : '<div class="empty">No residential proposals on record yet for this city.</div>');
 
   const pPanel = document.getElementById("panel-policy");
   if (!policies.length) {
