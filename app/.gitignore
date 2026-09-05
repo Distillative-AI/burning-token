@@ -2,6 +2,6 @@ node_modules
 .next
 out
 data/*.sqlite*
-.env.local
-.env
+.env*
+!.env.example
 *.tsbuildinfo
