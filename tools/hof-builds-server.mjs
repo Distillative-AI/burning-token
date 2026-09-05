@@ -273,6 +273,20 @@ function html() {
   h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.01em; }
   .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
   .sub code { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
+  .about {
+    margin: 16px 0 4px; padding: 12px 16px; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 10px; font-size: 13px;
+  }
+  .about summary { cursor: pointer; font-weight: 700; color: var(--text); list-style: none; }
+  .about summary::-webkit-details-marker { display: none; }
+  .about summary::before { content: "▸ "; color: var(--accent); }
+  .about[open] summary::before { content: "▾ "; }
+  .about-hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .about-body { margin-top: 10px; color: var(--muted); line-height: 1.6; }
+  .about-body p { margin: 0 0 10px; }
+  .about-body p:last-child { margin-bottom: 0; }
+  .about-body code { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+  .about-body em { color: var(--text); font-style: normal; font-weight: 600; }
   .tabs { display: flex; gap: 4px; }
   .tab {
     padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
@@ -303,6 +317,24 @@ function html() {
   .mechanism-group { margin-bottom: 22px; }
   .mechanism-group h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
   .intro { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 18px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+  .badge.letter { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+  .timeline { position: relative; padding-left: 110px; }
+  .tl-row { position: relative; margin-bottom: 16px; }
+  .tl-date { position: absolute; left: -110px; top: 14px; width: 90px; text-align: right; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .tl-row::before { content: ""; position: absolute; left: -22px; top: 18px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .tl-row::after { content: ""; position: absolute; left: -18.5px; top: 26px; bottom: -16px; width: 1px; background: var(--border); }
+  .tl-row:last-child::after { display: none; }
+  .tl-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tl-card.tl-letter { border-left: 3px solid var(--accent); }
+  .tl-card.tl-meeting { border-left: 3px solid var(--housing); }
+  .tl-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .tl-city { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .tl-action { margin-top: 8px; font-size: 13px; }
+  @media (max-width: 640px) {
+    .timeline { padding-left: 16px; }
+    .tl-date { position: static; text-align: left; width: auto; display: block; margin-bottom: 6px; }
+    .tl-row::before, .tl-row::after { display: none; }
+  }
   .body-tag { font-size: 12px; color: var(--muted); }
   .item-text { font-size: 14px; line-height: 1.5; margin: 6px 0 10px; }
   .card a { color: var(--accent); text-decoration: none; font-size: 12px; }
@@ -319,6 +351,38 @@ function html() {
 <header>
   <h1>🏗️ Latest Builds &amp; Policy Actions</h1>
   <div class="sub">Live from the <code>/cfd</code> HOF chronology (<code>HOF/**/*.af.scm</code>) — pilot city: <strong>San Mateo</strong></div>
+
+  <details class="about" open>
+    <summary>What is this? <span class="about-hint">(for anyone new to the project)</span></summary>
+    <div class="about-body">
+      <p><strong>The problem:</strong> San Mateo County has the Bay Area's highest rate of
+      cities without a state-certified Housing Element — which is exactly the condition under
+      which incumbent homeowners and NIMBY groups can use procedural tools (discretionary design
+      review, CEQA threats, ballot-box supermajority requirements) to block or delay new housing,
+      pushing prices up. This tool is a companion to the county's <em>Builder's Remedy Checker</em>
+      project: where that app answers "can I build here," this one answers
+      "what's happening right now, and what can an ordinary person actually do about it."</p>
+      <p><strong>Where the data comes from:</strong> every item below is a real, sourced record —
+      a planning-commission agenda item or an adopted ordinance — pulled from primary city sources
+      (PrimeGov/Legistar/municipal-code portals) and stored as a small typed "citizen" file in this
+      project's <code>/cfd</code> (chronology-first development) HOF store, e.g.
+      <code>(af:city-agenda-item "san-mateo" 'planning-commission "2026-07-28" "…222 dwelling units…" "https://…")</code>.
+      Nothing here is LLM-generated at request time — this page is a plain Node.js server that
+      re-reads those files from disk on every load, so what you see is exactly what's been
+      ingested, no more and no less.</p>
+      <p><strong>The four tabs:</strong> <em>Participate</em> is the action-first view — a
+      chronological timeline of write-a-letter and attend-a-meeting actions tied to real,
+      not-yet-held meetings. <em>Latest Builds</em> is the full raw feed of agenda items.
+      <em>Policy Actions</em> groups adopted ordinances by the project's own capture-mechanism
+      taxonomy (CEQA litigation, ballot-box supermajority, discretionary design review, etc. —
+      see <code>af-shenanigan-mechanism-type.af.scm</code>). <em>Cross-Reference</em> pairs each
+      housing-relevant build with the policy actions plausibly shaping its outcome.</p>
+      <p><strong>Coverage today:</strong> a handful of cities across San Mateo County (San Mateo
+      is the pilot) with items ingested so far — this is an early, actively-growing slice of the
+      county's full agenda/ordinance history, not a complete record yet.</p>
+    </div>
+  </details>
+
   <div class="tabs">
     <div class="tab active" data-tab="participate">Participate</div>
     <div class="tab" data-tab="builds">Latest Builds</div>
@@ -340,13 +404,21 @@ function html() {
 </main>
 <script>
 let DATA = { agendaItems: [], ordinances: [], pilotCity: "san-mateo" };
+const TODAY_ISO = new Date().toISOString().slice(0, 10);
+
+const ALL_CITIES = "__all__";
 
 async function load() {
   const res = await fetch("/api/chronology");
   DATA = await res.json();
   const cities = [...new Set([...DATA.agendaItems.map(i => i.city), ...DATA.ordinances.map(o => o.city)])].sort();
   const sel = document.getElementById("citySelect");
-  sel.innerHTML = cities.map(c => \`<option value="\${c}" \${c === DATA.pilotCity ? "selected" : ""}>\${c}</option>\`).join("");
+  // Default to "All cities" — the pilot city (San Mateo) alone has thin data
+  // this early in ingestion; showing the full county-wide set by default is
+  // what actually gets an activist to something actionable on first load.
+  sel.innerHTML =
+    \`<option value="\${ALL_CITIES}" selected>All ingested cities (San Mateo County)</option>\` +
+    cities.map(c => \`<option value="\${c}">\${c}\${c === DATA.pilotCity ? " (pilot)" : ""}</option>\`).join("");
   render();
 }
 
@@ -403,28 +475,26 @@ function policyCard(o) {
     </div>\`;
 }
 
+function cityMatches(itemCity, selected) {
+  return selected === ALL_CITIES || itemCity === selected;
+}
+
+function daysUntil(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const t = new Date(TODAY_ISO + "T00:00:00");
+  return Math.round((d - t) / 86400000);
+}
+
 function render() {
   const city = document.getElementById("citySelect").value;
   const housingOnly = document.getElementById("housingOnly").checked;
 
-  const builds = DATA.agendaItems.filter(i => i.city === city && (!housingOnly || i.housingSignal));
-  const policies = DATA.ordinances.filter(o => o.city === city && (!housingOnly || o.housingSignal));
+  const builds = DATA.agendaItems.filter(i => cityMatches(i.city, city) && (!housingOnly || i.housingSignal));
+  const policies = DATA.ordinances.filter(o => cityMatches(o.city, city) && (!housingOnly || o.housingSignal));
 
   document.getElementById("stat").textContent = builds.length + " build" + (builds.length === 1 ? "" : "s") + " · " + policies.length + " polic" + (policies.length === 1 ? "y" : "ies");
 
-  const upcoming = builds.filter(b => b.canParticipate);
-  const route = (DATA.writeLetterRoutes || {})[city];
-  const partPanel = document.getElementById("panel-participate");
-  partPanel.innerHTML =
-    '<div class="intro">The fundamental problem this tracks: incumbents using procedural leverage (design-review denials, CEQA threats, ballot-box supermajority requirements) to block or delay housing supply, which pushes prices up. Two actions are open to an activist before an outcome is locked in: <strong>attend and speak</strong> at a not-yet-held meeting, or <strong>write a letter</strong> into the public record ahead of one.</div>' +
-    '<div class="mechanism-group"><h3>Write a letter — ' + city + '</h3>' +
-    (route
-      ? '<div class="card"><div class="item-text">' + escapeHtml(route.note) + '</div><a href="' + route.url + '" target="_blank" rel="noopener">' + route.url + ' ↗</a></div>'
-      : '<div class="card"><div class="item-text">Not yet researched for ' + city + ' — no city clerk / council contact route ingested. Needs a /fundamental-ingestion pass on HOF/sources/' + city + '/SOURCES.md before this can point to a real recipient.</div></div>') +
-    '</div>' +
-    '<div class="mechanism-group"><h3>Attend & speak — upcoming meetings</h3>' +
-    (upcoming.length ? upcoming.map(buildCard).join("") : '<div class="empty">No upcoming (not-yet-held) meetings currently ingested for this city — check back as /fundamental-ingestion pulls new agendas.</div>') +
-    '</div>';
+  renderParticipateTimeline(city, builds);
 
   const bPanel = document.getElementById("panel-builds");
   bPanel.innerHTML = builds.length ? builds.map(buildCard).join("") : '<div class="empty">No agenda items ingested yet for this city.</div>';
@@ -450,13 +520,14 @@ function render() {
   }
 
   const xPanel = document.getElementById("panel-xref");
-  const housingBuilds = DATA.agendaItems.filter(i => i.city === city && i.housingSignal);
-  const housingPolicies = DATA.ordinances.filter(o => o.city === city && o.housingSignal);
+  const housingBuilds = DATA.agendaItems.filter(i => cityMatches(i.city, city) && i.housingSignal);
+  const housingPolicies = DATA.ordinances.filter(o => cityMatches(o.city, city) && o.housingSignal);
   if (!housingBuilds.length) {
     xPanel.innerHTML = '<div class="empty">No housing-signal build items for this city to cross-reference yet.</div>';
   } else {
     xPanel.innerHTML = housingBuilds.map(b => {
       const related = housingPolicies
+        .filter(p => p.city === b.city)
         .map(p => ({ p, score: sharedTermScore(b.text, p.title) }))
         .sort((x, y) => y.score - x.score)
         .filter(r => r.score > 0);
@@ -464,9 +535,89 @@ function render() {
         ? \`<div class="xref-related"><div class="rel-title">Related policy actions</div>\` +
           related.map(r => \`<div class="rel-item">\${escapeHtml(r.p.title)} <span class="relevance">(ord. \${r.p.ordinanceNumber || "—"}, shared-term score \${r.score})</span></div>\`).join("") +
           \`</div>\`
-        : \`<div class="xref-related"><div class="rel-title">Related policy actions</div><div class="rel-item">No matching ordinance citizens ingested yet for \${city} — cross-reference will populate as /fundamental-ingestion adds af:adopted-ordinance instances for this city.</div></div>\`);
+        : \`<div class="xref-related"><div class="rel-title">Related policy actions</div><div class="rel-item">No matching ordinance citizens ingested yet for \${b.city} — cross-reference will populate as /fundamental-ingestion adds af:adopted-ordinance instances for this city.</div></div>\`);
     }).join("");
   }
+}
+
+// The Participate tab is a chronological action timeline, not a flat list:
+// for every not-yet-held housing-signal meeting, an activist has exactly two
+// concrete actions — write a letter (do it now, ahead of the meeting) and
+// show up to speak (on the meeting date itself). Both are plotted as dated
+// timeline entries so "what do I do, and by when" reads at a glance.
+function renderParticipateTimeline(city, builds) {
+  const partPanel = document.getElementById("panel-participate");
+  const upcoming = builds.filter(b => b.canParticipate).sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  if (!upcoming.length) {
+    partPanel.innerHTML =
+      '<div class="intro">The fundamental problem this tracks: incumbents using procedural leverage (design-review denials, CEQA threats, ballot-box supermajority requirements) to block or delay housing supply, which pushes prices up.</div>' +
+      '<div class="empty">No upcoming (not-yet-held) meetings currently ingested' + (city === ALL_CITIES ? "" : " for " + city) + ' — check back as /fundamental-ingestion pulls new agendas.</div>';
+    return;
+  }
+
+  const entries = [];
+  for (const b of upcoming) {
+    const route = DATA.writeLetterRoutes && DATA.writeLetterRoutes[b.city];
+    entries.push({
+      sortDate: b.date,
+      type: "letter",
+      city: b.city,
+      label: "Write a letter",
+      dueLabel: "before " + b.date,
+      build: b,
+      route,
+    });
+    entries.push({
+      sortDate: b.date,
+      type: "meeting",
+      city: b.city,
+      label: "Attend & speak",
+      dueLabel: b.date + " (" + daysUntilLabel(b.date) + ")",
+      build: b,
+    });
+  }
+  entries.sort((a, b) => (a.sortDate === b.sortDate ? (a.type === "letter" ? -1 : 1) : (a.sortDate < b.sortDate ? -1 : 1)));
+
+  partPanel.innerHTML =
+    '<div class="intro">The fundamental problem this tracks: incumbents using procedural leverage (design-review denials, CEQA threats, ballot-box supermajority requirements) to block or delay housing supply, which pushes prices up. Two concrete actions, plotted on a timeline: <strong>write a letter</strong> now, ahead of the meeting, and <strong>show up to speak</strong> on the meeting date.</div>' +
+    '<div class="timeline">' + entries.map(timelineEntry).join("") + '</div>';
+}
+
+function daysUntilLabel(dateStr) {
+  const n = daysUntil(dateStr);
+  if (n === 0) return "today";
+  if (n === 1) return "tomorrow";
+  return "in " + n + " days";
+}
+
+function timelineEntry(e) {
+  const b = e.build;
+  if (e.type === "letter") {
+    const route = e.route;
+    return \`
+      <div class="tl-row">
+        <div class="tl-date">\${e.dueLabel}</div>
+        <div class="tl-card tl-letter">
+          <div class="tl-head"><span class="badge letter">Write a letter</span><span class="tl-city">\${e.city}</span></div>
+          <div class="item-text">Re: \${escapeHtml(b.text.slice(0, 140))}\${b.text.length > 140 ? "…" : ""}</div>
+          \${route
+            ? \`<div class="tl-action">Send to: <a href="\${route.url}" target="_blank" rel="noopener">\${route.url} ↗</a><div class="body-tag">\${escapeHtml(route.note)}</div></div>\`
+            : \`<div class="tl-action body-tag">No contact route researched yet for \${e.city} — needs a /fundamental-ingestion pass on HOF/sources/\${e.city}/SOURCES.md.</div>\`}
+        </div>
+      </div>\`;
+  }
+  return \`
+    <div class="tl-row">
+      <div class="tl-date">\${e.dueLabel}</div>
+      <div class="tl-card tl-meeting">
+        <div class="tl-head"><span class="badge upcoming">Attend &amp; speak</span><span class="tl-city">\${e.city}</span>\${mechanismBadge(b.mechanism)}</div>
+        <div class="body-tag">\${b.body.replace(/-/g, " ")}</div>
+        <div class="item-text">\${escapeHtml(b.text)}</div>
+        <a href="\${b.sourceUrl}" target="_blank" rel="noopener">Agenda / how to comment ↗</a>
+        <div class="citizen">\${b.citizen}</div>
+      </div>
+    </div>\`;
 }
 
 function sharedTermScore(a, b) {
