@@ -1,0 +1,16 @@
+;; san-bruno-housing-element-compliance.web.fact.af
+;; AF: San Bruno 2023-2031 Housing Element HCD compliance status as of Sept 2026
+
+(define-af san-bruno-housing-element-compliance
+  (lambda ()
+    (list
+      (cons 'finding        "San Bruno adopted an amended 2023-2031 Housing Element on 2024-08-27. HCD found the amended element in substantial compliance with state housing element law on 2024-10-21. Prior review letters (2022-10-06, 2023-03-29, 2024-05-16, 2024-08-23) document an iterative non-compliant/under-review status before the Oct 2024 certification. No subsequent decertification found as of Sept 2026 search.")
+      (cons 'source-url     "https://sanbruno.ca.gov/568/2023-2031-Housing-Element-Update")
+      (cons 'source-type    'web)
+      (cons 'verdict        'single-source)
+      (cons 'weakness-score 0.35)
+      (cons 'query          "San Bruno California housing element HCD compliance status 2026")
+      (cons 'domain         "housing-policy")
+      (cons 'tags           '("san-bruno" "housing-element" "hcd" "compliance" "rhna"))
+      (cons 'relations      '(((type . supports) (target . "san-bruno-eligibility-snapshot"))))
+      (cons 'ingested-at    "2026-09-05T20:06:52Z"))))

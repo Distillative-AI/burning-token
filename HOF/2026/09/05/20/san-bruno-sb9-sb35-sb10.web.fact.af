@@ -1,0 +1,16 @@
+;; san-bruno-sb9-sb35-sb10.web.fact.af
+;; AF: San Bruno SB9/SB35/SB10 status -- largely unverified at city-specific level
+
+(define-af san-bruno-sb9-sb35-sb10
+  (lambda ()
+    (list
+      (cons 'finding        "No San Bruno-specific SB9 local implementing ordinance, objective-standards document, or owner-occupancy/historic-district restriction was located; general web search returned only generic SB9 guidance from other jurisdictions (Santa Cruz, LA, Santa Clara County), implying San Bruno likely relies on the state-default ministerial SB9 process, but this is UNCONFIRMED absent a direct municipal code citation. For SB35, general secondary sources describe a '10% affordability tier' streamlined process as applying to San Francisco Peninsula cities not meeting above-moderate-income RHNA, and characterize San Bruno as 'qualifying' for it, but no direct HCD SB35 determination-list entry or dataset row for San Bruno was independently fetched -- this is UNCONFIRMED at the source-of-truth level (HCD's SB35 dataset was found but not queried for San Bruno's row). No SB10 local resolution/ordinance for San Bruno was found in search results; consistent with the general pattern that most CA cities have not adopted SB10 -- treat as zero adoption absent contrary evidence, but not independently confirmed via city council minutes.")
+      (cons 'source-url     "https://data.ca.gov/dataset/sb-35-data")
+      (cons 'source-type    'web)
+      (cons 'verdict        'unverified)
+      (cons 'weakness-score 0.75)
+      (cons 'query          "San Bruno SB9 SB35 SB10 ordinance determination")
+      (cons 'domain         "housing-policy")
+      (cons 'tags           '("san-bruno" "sb9" "sb35" "sb10" "ministerial-approval"))
+      (cons 'relations      '(((type . supports) (target . "san-bruno-eligibility-snapshot"))))
+      (cons 'ingested-at    "2026-09-05T20:06:52Z"))))

@@ -1,0 +1,16 @@
+;; san-bruno-tanforan-project.web.fact.af
+;; AF: Tanforan redevelopment project status in San Bruno, not confirmed as Builder's Remedy filing
+
+(define-af san-bruno-tanforan-project
+  (lambda ()
+    (list
+      (cons 'finding        "The Tanforan redevelopment project in San Bruno had a Draft EIR issued June 2025; a community meeting was held 2025-08-28; planning commission/council consideration of zoning, subdivision map, EIR and development agreement is scheduled Fall 2026, with construction start 2028-2029. No source found characterizing Tanforan as a Builder's Remedy filing specifically -- it appears to be a negotiated/entitled specific-plan project, not a state-law builder's-remedy ministerial application. No other San Bruno builder's remedy project (filed/pending/approved/rejected) was found in search results, including CalHDF's public case list.")
+      (cons 'source-url     "https://tanforanforsanbruno.com/application-summary/")
+      (cons 'source-type    'web)
+      (cons 'verdict        'unverified)
+      (cons 'weakness-score 0.6)
+      (cons 'query          "San Bruno builder's remedy project 2025 2026")
+      (cons 'domain         "housing-policy")
+      (cons 'tags           '("san-bruno" "builders-remedy" "tanforan" "development-project"))
+      (cons 'relations      '(((type . supports) (target . "san-bruno-eligibility-snapshot"))))
+      (cons 'ingested-at    "2026-09-05T20:06:52Z"))))

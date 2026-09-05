@@ -1,0 +1,16 @@
+;; san-bruno-ordinance-1284-ballot.web.fact.af
+;; AF: San Bruno November 2026 ballot measures, including Ordinance 1284 height-restriction repeal
+
+(define-af san-bruno-ordinance-1284-ballot
+  (lambda ()
+    (list
+      (cons 'finding        "San Bruno City Council voted unanimously to place a measure on the November 2026 ballot asking voters to repeal Ordinance 1284, which currently requires voter approval for any project exceeding three stories or 50 feet in height (with an existing carve-out for 4-7 story buildings in a 155-acre transit corridor along El Camino Real / San Bruno Ave / San Mateo Ave adopted in 2014). Two other unrelated measures (business license fee increase, safe-and-sane fireworks ban) are also headed to the Nov 2026 ballot. In July 2025 the Council separately adopted a resolution launching a fiscal-health initiative tied to land use/housing/economic development policy.")
+      (cons 'source-url     "https://www.smdailyjournal.com/news/local/san-bruno-advances-3-ballot-measures-for-november-election/article_dfdb0eac-12cf-4b1a-bf53-f7a3d900935b.html")
+      (cons 'source-type    'web)
+      (cons 'verdict        'single-source)
+      (cons 'weakness-score 0.4)
+      (cons 'query          "San Bruno 2025 2026 ballot measure housing referendum ordinance zoning")
+      (cons 'domain         "housing-policy")
+      (cons 'tags           '("san-bruno" "ballot-measure" "ordinance-1284" "height-restriction" "2026-election"))
+      (cons 'relations      '(((type . supports) (target . "san-bruno-eligibility-snapshot"))))
+      (cons 'ingested-at    "2026-09-05T20:06:52Z"))))
