@@ -1,0 +1,14 @@
+{
+  "name": "burning-token",
+  "owner": {
+    "name": "Distillative.AI",
+    "url": "https://distillative.ai"
+  },
+  "plugins": [
+    {
+      "name": "housing-tracker",
+      "source": "./claude-plugins/housing-tracker",
+      "description": "Ingest real, sourced housing-agenda/ordinance data for a city and serve it through the Housing Tracker UI."
+    }
+  ]
+}

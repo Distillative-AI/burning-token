@@ -1,0 +1,13 @@
+{
+  "name": "housing-tracker",
+  "description": "Ingest real, sourced, verified housing-agenda and adopted-ordinance records for a city or county into a HOF chronology, and serve them through the Housing Tracker UI. Built for and by the burning-token San Mateo County housing project, packaged so any Claude Code user or Agent Skills implementer can point it at their own jurisdiction.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Distillative.AI",
+    "url": "https://distillative.ai"
+  },
+  "homepage": "https://github.com/Distillative-AI/burning-token",
+  "repository": "https://github.com/Distillative-AI/burning-token",
+  "license": "MIT",
+  "keywords": ["housing", "civic-tech", "california", "planning-commission", "agenda", "ordinance", "yimby"]
+}
