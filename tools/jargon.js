@@ -437,3 +437,45 @@ function buildChallengeChecklist(build, ordinances) {
   // Stable order matching the taxonomy's own canonical ordering.
   return CHALLENGE_MECHANISM_ORDER.map((key) => rows.find((r) => r.mechanism === key));
 }
+
+// ---------------------------------------------------------------------------
+// Simple action cards — the Participate timeline collapses each action down
+// to one line + one button ("Go here" / "Write this letter"), with the full
+// detail (sample letter text, why it actually works, how it physically
+// reaches a decision-maker) tucked behind a click so the default view stays
+// dead simple.
+// ---------------------------------------------------------------------------
+
+function generateSampleLetter(build, route) {
+  const s = letterSummary(build);
+  const bodyName = (build.body || "").replace(/-/g, " ");
+  const cityName = build.city.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const dateLine = build.date ? "the " + build.date + " meeting" : "an upcoming meeting";
+  return (
+    "To the " + cityName + " " + bodyName + ",\n\n" +
+    "I'm writing about this item on your agenda for " + dateLine + ":\n\n" +
+    "\"" + build.text + "\"\n\n" +
+    s.concern + "\n\n" +
+    s.why + "\n\n" +
+    s.ask + "\n\n" +
+    "Thank you for reading this before you vote.\n\n" +
+    "Sincerely,\n" +
+    "A " + cityName + " resident" +
+    (route ? "\n\n(Sent to: " + route.url + ")" : "")
+  );
+}
+
+// Why showing up / writing in actually works, and how it physically reaches
+// the people voting — kept generic (true of any city meeting) rather than
+// re-derived per item, since this is about how city government works, not
+// about this specific project.
+const ACTION_EXPLAINERS = {
+  meeting: {
+    why: "The people voting can only vote no (or shrink a project) if they think nobody wants it. Every person who shows up and says 'I support this' out loud, in the room, makes that much harder to do quietly.",
+    how: "When you speak during public comment, it becomes part of the official meeting record (the minutes) — it's not just heard once, it's a permanent part of the file for that project, which can even matter later if the decision gets challenged.",
+  },
+  letter: {
+    why: "Most people only show up to complain, not to support. A single letter of support can outweigh several complaints, because right now the loud voices are almost all on one side.",
+    how: "City staff collect every letter into the 'staff report' packet the commission reads BEFORE the meeting even starts — so a letter sent a day or two ahead is guaranteed to be seen, even if you can't attend in person.",
+  },
+};

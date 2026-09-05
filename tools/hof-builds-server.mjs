@@ -270,7 +270,7 @@ function html() {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Latest Builds &amp; Policy Actions</title>
+<title>Housing Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -399,6 +399,22 @@ function html() {
   .tl-summary-row { font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
   .tl-summary-row:last-child { margin-bottom: 0; }
   .tl-summary-row .tt-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent); margin-bottom: 2px; }
+  .btn-action {
+    display: inline-block; margin-top: 8px; margin-right: 8px; padding: 9px 16px;
+    border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+    background: var(--accent); color: #0b0d0f; border: none; text-decoration: none;
+  }
+  .btn-action.btn-go { background: var(--housing); }
+  .btn-action.btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .sample-letter { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .sample-letter.show { display: block; }
+  .sample-letter textarea {
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 12px;
+    line-height: 1.5; resize: vertical; margin-bottom: 8px;
+  }
+  .tl-explain { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin-top: 8px; }
+  .tl-explain .tt-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent-title); margin-bottom: 2px; }
   @media (max-width: 640px) {
     .timeline { padding-left: 16px; }
     .tl-date { position: static; text-align: left; width: auto; display: block; margin-bottom: 6px; }
@@ -444,7 +460,7 @@ function html() {
 </head>
 <body>
 <header>
-  <h1>🏗️ Latest Builds &amp; Policy Actions</h1>
+  <h1>🏗️ Housing Tracker</h1>
   <div class="sub">Real, sourced records of city meeting agendas and adopted laws — pilot city: <strong>San Mateo</strong></div>
 
   <details class="about" open>
@@ -717,37 +733,49 @@ function daysUntilLabel(dateStr) {
   return "in " + n + " days";
 }
 
+let sampleLetterCounter = 0;
+
 function timelineEntry(e) {
   const b = e.build;
   if (e.type === "letter") {
     const route = e.route;
-    const s = letterSummary(b);
+    const ex = ACTION_EXPLAINERS.letter;
+    const letterId = "letter-" + (sampleLetterCounter++);
+    const letterText = generateSampleLetter(b, route);
     return \`
       <div class="tl-row">
         <div class="tl-date">\${e.dueLabel}</div>
         <div class="tl-card tl-letter">
-          <div class="tl-head"><span class="badge letter">Write a letter</span><span class="tl-city">\${e.city}</span></div>
-          <div class="item-text">Re: \${escapeHtml(b.text.slice(0, 140))}\${b.text.length > 140 ? "…" : ""}</div>
-          <div class="tl-summary">
-            <div class="tl-summary-row"><span class="tt-label">What's being decided</span>\${escapeHtml(s.concern)}</div>
-            <div class="tl-summary-row"><span class="tt-label">Why it matters for prices</span>\${escapeHtml(s.why)}</div>
-            <div class="tl-summary-row"><span class="tt-label">What to ask for</span>\${escapeHtml(s.ask)}</div>
+          <div class="tl-head"><span class="badge letter">✉️ Write a letter</span><span class="tl-city">\${e.city}</span></div>
+          <div class="item-text">About: \${escapeHtml(b.text.slice(0, 100))}\${b.text.length > 100 ? "…" : ""}</div>
+          <button class="btn-action" onclick="document.getElementById('\${letterId}').classList.toggle('show')">Write this letter (click for a sample) ▾</button>
+          <div class="sample-letter" id="\${letterId}">
+            <textarea readonly rows="10">\${escapeHtml(letterText)}</textarea>
+            \${route
+              ? \`<div class="tl-action">Send it here: <a href="\${route.url}" target="_blank" rel="noopener">\${route.url} ↗</a></div>\`
+              : \`<div class="tl-action body-tag">No contact address found yet for \${e.city} — use the city's public meeting page for now.</div>\`}
+            <div class="tl-explain"><span class="tt-label">Why this works</span>\${escapeHtml(ex.why)}</div>
+            <div class="tl-explain"><span class="tt-label">How it gets to them</span>\${escapeHtml(ex.how)}</div>
           </div>
-          \${route
-            ? \`<div class="tl-action">Send to: <a href="\${route.url}" target="_blank" rel="noopener">\${route.url} ↗</a><div class="body-tag">\${escapeHtml(route.note)}</div></div>\`
-            : \`<div class="tl-action body-tag">No contact address found yet for \${e.city} — the city's public meeting page is the fallback until one is researched.</div>\`}
         </div>
       </div>\`;
   }
+  const ex = ACTION_EXPLAINERS.meeting;
+  const meetingId = "meeting-" + (sampleLetterCounter++);
   return \`
     <div class="tl-row">
       <div class="tl-date">\${e.dueLabel}</div>
       <div class="tl-card tl-meeting">
-        <div class="tl-head"><span class="badge upcoming">Attend &amp; speak</span><span class="tl-city">\${e.city}</span>\${mechanismBadge(b.mechanism)}</div>
-        <div class="body-tag">\${b.body.replace(/-/g, " ")}</div>
-        <div class="item-text">\${escapeHtml(b.text)}</div>
-        <a href="\${b.sourceUrl}" target="_blank" rel="noopener">Agenda / how to comment ↗</a>
-        <div class="citizen">Source record: \${b.citizen}</div>
+        <div class="tl-head"><span class="badge upcoming">📍 Attend &amp; speak</span><span class="tl-city">\${e.city}</span>\${mechanismBadge(b.mechanism)}</div>
+        <div class="item-text">\${escapeHtml(b.text.slice(0, 100))}\${b.text.length > 100 ? "…" : ""}</div>
+        <a class="btn-action btn-go" href="\${b.sourceUrl}" target="_blank" rel="noopener">Go here →</a>
+        <button class="btn-action btn-secondary" onclick="document.getElementById('\${meetingId}').classList.toggle('show')">More detail ▾</button>
+        <div class="sample-letter" id="\${meetingId}">
+          <div class="item-text">\${escapeHtml(b.text)}</div>
+          <div class="tl-explain"><span class="tt-label">Why this works</span>\${escapeHtml(ex.why)}</div>
+          <div class="tl-explain"><span class="tt-label">How it gets to them</span>\${escapeHtml(ex.how)}</div>
+          <div class="citizen">Source record: \${b.citizen}</div>
+        </div>
       </div>
     </div>\`;
 }
