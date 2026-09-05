@@ -271,24 +271,48 @@ function html() {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Latest Builds &amp; Policy Actions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+  /* Palette matched to distillative.ai: near-black oklch base, Raleway
+     wordmark, and its per-topic hue-tinted card system (each category gets
+     its own hue at the same fixed lightness/chroma the source site uses —
+     0.15/0.025 for card backgrounds, ~0.8/0.11 for the matching title/badge
+     color) rather than one single accent color for everything. */
   :root {
-    color-scheme: light dark;
-    --bg: #0b0d10; --panel: #14171c; --border: #262b33;
-    --text: #e8ebef; --muted: #8b93a1;
-    --accent: #ff7a45; --housing: #3ddc84; --other: #4a5568; --policy: #5b8dee;
-  }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #f6f7f9; --panel: #ffffff; --border: #e2e5ea;
-      --text: #1a1d21; --muted: #5f6774;
-      --accent: #d9531e; --housing: #1a9b57; --other: #9aa3af; --policy: #2a5ed6;
-    }
+    color-scheme: dark;
+    --bg: oklch(0.12 0.005 240);
+    --panel: oklch(0.16 0.005 240);
+    --header-bg: oklch(0.145 0.008 240 / 0.96);
+    --border: oklch(0.22 0.008 240);
+    --text: oklch(0.88 0.01 240);
+    --text-strong: oklch(0.92 0.01 240);
+    --muted: oklch(0.7 0.008 240);
+    --muted-dim: oklch(0.58 0.006 240);
+    --accent: oklch(0.72 0.15 42);
+    --accent-title: oklch(0.78 0.12 42);
+    --housing: oklch(0.82 0.11 125);
+    --housing-bg: oklch(0.15 0.025 125);
+    --other: var(--muted-dim);
+    --policy: oklch(0.82 0.11 258);
+    --policy-bg: oklch(0.15 0.025 258);
+    /* mechanism hues, cycling the site's own topic palette */
+    --hue-ceqa: 42;      --hue-ceqa-bg: oklch(0.15 0.025 42);      --hue-ceqa-title: oklch(0.78 0.12 42);
+    --hue-ballot: 258;   --hue-ballot-bg: oklch(0.15 0.025 258);   --hue-ballot-title: oklch(0.82 0.11 258);
+    --hue-discretion: 95; --hue-discretion-bg: oklch(0.15 0.025 95); --hue-discretion-title: oklch(0.78 0.12 95);
+    --hue-subjective: 178; --hue-subjective-bg: oklch(0.15 0.025 178); --hue-subjective-title: oklch(0.82 0.11 178);
+    --hue-pla: 220;      --hue-pla-bg: oklch(0.15 0.025 220);      --hue-pla-title: oklch(0.82 0.11 220);
+    --hue-lotsize: 125;  --hue-lotsize-bg: oklch(0.15 0.025 125);  --hue-lotsize-title: oklch(0.82 0.11 125);
+    --hue-fiscal: 240;   --hue-fiscal-bg: oklch(0.16 0.005 240);   --hue-fiscal-title: oklch(0.86 0.055 220);
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  header { padding: 28px 32px 0; border-bottom: 1px solid var(--border); }
-  h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.01em; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: Raleway, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif; }
+  header {
+    padding: 20px 32px 0; background: var(--header-bg);
+    border-bottom: 1px solid var(--border);
+  }
+  h1 { margin: 0 0 4px; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; color: var(--text-strong); }
   .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
   .sub code { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
   .about {
@@ -330,10 +354,27 @@ function html() {
   .badge.other { background: color-mix(in srgb, var(--other) 20%, transparent); color: var(--muted); }
   .badge.policy { background: color-mix(in srgb, var(--policy) 20%, transparent); color: var(--policy); }
   .badge.mechanism { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+  .badge.mechanism.hue-ceqa { background: color-mix(in srgb, var(--hue-ceqa-title) 18%, transparent); color: var(--hue-ceqa-title); }
+  .badge.mechanism.hue-ballot { background: color-mix(in srgb, var(--hue-ballot-title) 18%, transparent); color: var(--hue-ballot-title); }
+  .badge.mechanism.hue-discretion { background: color-mix(in srgb, var(--hue-discretion-title) 18%, transparent); color: var(--hue-discretion-title); }
+  .badge.mechanism.hue-subjective { background: color-mix(in srgb, var(--hue-subjective-title) 18%, transparent); color: var(--hue-subjective-title); }
+  .badge.mechanism.hue-pla { background: color-mix(in srgb, var(--hue-pla-title) 18%, transparent); color: var(--hue-pla-title); }
+  .badge.mechanism.hue-lotsize { background: color-mix(in srgb, var(--hue-lotsize-title) 18%, transparent); color: var(--hue-lotsize-title); }
+  .badge.mechanism.hue-fiscal { background: color-mix(in srgb, var(--hue-fiscal-title) 18%, transparent); color: var(--hue-fiscal-title); }
   .badge.upcoming { background: color-mix(in srgb, var(--housing) 25%, transparent); color: var(--housing); }
+  .badge.risk-confirmed { background: color-mix(in srgb, var(--hue-ceqa-title) 20%, transparent); color: var(--hue-ceqa-title); }
+  .badge.risk-possible { background: color-mix(in srgb, var(--hue-discretion-title) 20%, transparent); color: var(--hue-discretion-title); }
+  .badge.risk-not-evidenced { background: color-mix(in srgb, var(--muted-dim) 18%, transparent); color: var(--muted-dim); }
   .participate-card { border-left: 3px solid var(--housing); }
-  .mechanism-group { margin-bottom: 22px; }
+  .mechanism-group { margin-bottom: 22px; padding-left: 12px; border-left: 3px solid var(--border); }
   .mechanism-group h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .mechanism-group.hue-ceqa { border-left-color: var(--hue-ceqa-title); }
+  .mechanism-group.hue-ballot { border-left-color: var(--hue-ballot-title); }
+  .mechanism-group.hue-discretion { border-left-color: var(--hue-discretion-title); }
+  .mechanism-group.hue-subjective { border-left-color: var(--hue-subjective-title); }
+  .mechanism-group.hue-pla { border-left-color: var(--hue-pla-title); }
+  .mechanism-group.hue-lotsize { border-left-color: var(--hue-lotsize-title); }
+  .mechanism-group.hue-fiscal { border-left-color: var(--hue-fiscal-title); }
   .intro { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 18px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
   .badge.letter { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
   .timeline { position: relative; padding-left: 110px; }
@@ -377,6 +418,18 @@ function html() {
   .jargon .tooltip strong { display: block; color: var(--accent); font-size: 13px; margin-bottom: 6px; }
   .jargon .tooltip .tt-label { color: var(--muted); font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 8px; }
   .empty { color: var(--muted); padding: 40px; text-align: center; }
+  .checklist { margin-top: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+  .checklist summary { cursor: pointer; padding: 8px 12px; font-size: 12px; font-weight: 700; color: var(--muted); list-style: none; display: flex; align-items: center; gap: 6px; }
+  .checklist summary::-webkit-details-marker { display: none; }
+  .checklist summary::before { content: "▸"; color: var(--accent); font-weight: 700; }
+  .checklist[open] summary::before { content: "▾"; }
+  .checklist-body { padding: 4px 12px 12px; }
+  .checklist-row { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--border); }
+  .checklist-row:first-child { border-top: none; }
+  .checklist-row .badge { flex-shrink: 0; margin-top: 1px; }
+  .checklist-row-text { font-size: 12.5px; line-height: 1.5; color: var(--text); }
+  .checklist-row-text .mech-label { font-weight: 700; color: var(--text-strong); }
+  .checklist-row-cite { font-size: 11px; color: var(--muted-dim); margin-top: 2px; }
   .xref-related { margin: 8px 0 0 0; padding: 10px 14px; border-left: 3px solid var(--policy); background: color-mix(in srgb, var(--policy) 8%, transparent); border-radius: 0 8px 8px 0; }
   .xref-related .rel-title { font-size: 12px; font-weight: 700; color: var(--policy); margin-bottom: 6px; }
   .xref-related .rel-item { font-size: 13px; margin-bottom: 4px; }
@@ -464,9 +517,23 @@ const MECHANISM_LABELS = {
   "minimum-lot-size-setback": "Min. lot size / setback / height cap",
   "fiscal-zoning-prop13": "Fiscal zoning (Prop 13)",
 };
+// Each mechanism gets its own hue (matching the site's per-topic card system)
+// instead of one flat accent color for all seven — makes them scannable at a
+// glance the same way the reference site's topic cards are.
+const MECHANISM_HUE_CLASS = {
+  "ceqa-litigation": "hue-ceqa",
+  "ballot-box-supermajority": "hue-ballot",
+  "discretionary-design-review": "hue-discretion",
+  "subjective-design-standard": "hue-subjective",
+  "pla-linked-appeal": "hue-pla",
+  "minimum-lot-size-setback": "hue-lotsize",
+  "fiscal-zoning-prop13": "hue-fiscal",
+};
 
 function mechanismBadge(mechanism) {
-  return mechanism ? \`<span class="badge mechanism">\${MECHANISM_LABELS[mechanism] || mechanism}</span>\` : "";
+  if (!mechanism) return "";
+  const hueClass = MECHANISM_HUE_CLASS[mechanism] || "hue-fiscal";
+  return \`<span class="badge mechanism \${hueClass}">\${MECHANISM_LABELS[mechanism] || mechanism}</span>\`;
 }
 
 function buildCard(i) {
@@ -542,7 +609,7 @@ function render() {
     pPanel.innerHTML =
       '<div class="intro">Adopted city laws grouped by which incumbent tactic they match — CEQA litigation, ballot-box supermajority, discretionary design review, subjective design standards, PLA-linked appeals, restrictive lot-size/setback/height rules, or fiscal zoning. "Uncategorized" laws don\\'t match any of those tactics — often because they actually enable more housing (like SB9 or ADU rules) rather than blocking it.</div>' +
       order.filter(k => groups.has(k)).map(k => \`
-        <div class="mechanism-group">
+        <div class="mechanism-group \${MECHANISM_HUE_CLASS[k] || ""}">
           <h3>\${k === "uncategorized" ? "Uncategorized / enabling" : MECHANISM_LABELS[k]} (\${groups.get(k).length})</h3>
           \${groups.get(k).map(policyCard).join("")}
         </div>\`).join("");
