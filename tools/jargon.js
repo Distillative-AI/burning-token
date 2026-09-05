@@ -218,3 +218,69 @@ function annotateJargon(root) {
 document.addEventListener("click", () => {
   document.querySelectorAll(".jargon.show").forEach((s) => s.classList.remove("show"));
 });
+
+// ---------------------------------------------------------------------------
+// Letter talking points — turns a raw agenda-item into "what's being
+// asserted in the letter": the concern, why it matters for housing prices,
+// and a concrete ask. Computed from real fields already on the build object
+// (its classified capture mechanism, a unit-count regex match against its
+// actual agenda text) — never fabricated per-item commentary the chronology
+// doesn't support.
+// ---------------------------------------------------------------------------
+const MECHANISM_LETTER_TALKING_POINTS = {
+  "ceqa-litigation": {
+    concern: "This item may use a CEQA challenge or appeal to delay or kill this housing project, independent of its actual environmental impact.",
+    why: "Every year of CEQA delay adds carrying costs that get passed into higher prices for the eventual units, or kills the project outright — keeping the project on track is what actually gets supply built and eases prices.",
+  },
+  "ballot-box-supermajority": {
+    concern: "This action would require a public vote or supermajority before this housing (or the disposition of land for it) can proceed.",
+    why: "Routing a normal legislative housing decision through an election adds years of delay and lets a well-funded opposition campaign kill supply a council majority already supports.",
+  },
+  "discretionary-design-review": {
+    concern: "This is a discretionary hearing where the commission can deny, downsize, or add costly conditions to this project on a judgment call, not a fixed rule.",
+    why: "Discretionary denial or downsizing is the single biggest chokepoint for blocking housing supply — every unit cut here is a unit that won't help bring prices down.",
+  },
+  "subjective-design-standard": {
+    concern: "This project may be evaluated against a subjective 'compatibility' standard rather than a fixed, objective rule.",
+    why: "A vague standard can function as an unlimited veto regardless of a project's actual merits — objective standards are what state streamlining law requires precisely to stop this.",
+  },
+  "pla-linked-appeal": {
+    concern: "This appeal or hearing may be leverage for a Project Labor Agreement rather than a genuine environmental or design objection.",
+    why: "Using a housing-blocking tool for a labor negotiation adds delay and cost with no bearing on whether the project should be approved on its actual merits.",
+  },
+  "minimum-lot-size-setback": {
+    concern: "The zoning code's own minimum lot size, setback, or height-cap rules may structurally rule out the housing density this parcel could otherwise support.",
+    why: "These limits work automatically, before any hearing — loosening them is a direct, durable increase in a city's legal housing capacity, not a one-project fix.",
+  },
+  "fiscal-zoning-prop13": {
+    concern: "This action may reflect a preference for sales-tax-generating commercial use over housing, driven by Prop 13's fiscal incentives rather than a merits-based land-use judgment.",
+    why: "Fiscal zoning restricts supply for budget reasons unrelated to actual housing need or site suitability — naming it as the real motive is often the first step to overriding it.",
+  },
+};
+
+function letterSummary(build) {
+  const unitMatch = (build.text || "").match(/(\d[\d,]*)\s*(dwelling units?|units?|homes?|apartments?)/i);
+  const units = unitMatch ? (unitMatch[1] + " " + unitMatch[2].toLowerCase()) : null;
+  const bodyName = (build.body || "").replace(/-/g, " ");
+  const tp = MECHANISM_LETTER_TALKING_POINTS[build.mechanism];
+
+  if (tp) {
+    return {
+      concern: tp.concern,
+      why: tp.why,
+      ask: "Ask the " + bodyName + " to approve this item without using this mechanism to deny, downsize, or delay the project" + (units ? " (" + units + ")" : "") + ".",
+    };
+  }
+  if (units) {
+    return {
+      concern: "This item proposes " + units + " of new housing.",
+      why: "More approved, built units is the most direct lever for bringing housing prices down — every unit cut, delayed, or denied at this stage is supply that won't exist to ease the market.",
+      ask: "Ask the " + bodyName + " to approve the full " + units + " as proposed, without reducing the count or attaching conditions that would delay construction.",
+    };
+  }
+  return {
+    concern: "Review this agenda item for any condition that would reduce unit count, add delay, or increase cost for the housing described.",
+    why: "Any reduction in scope or added delay at this stage is supply that won't materialize to help bring prices down.",
+    ask: "Ask the " + bodyName + " to approve the item as proposed, and to state its reasoning on the record if it does not.",
+  };
+}

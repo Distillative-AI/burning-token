@@ -330,6 +330,10 @@ function html() {
   .tl-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .tl-city { font-size: 12px; color: var(--muted); font-weight: 600; }
   .tl-action { margin-top: 8px; font-size: 13px; }
+  .tl-summary { margin: 10px 0; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+  .tl-summary-row { font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
+  .tl-summary-row:last-child { margin-bottom: 0; }
+  .tl-summary-row .tt-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent); margin-bottom: 2px; }
   @media (max-width: 640px) {
     .timeline { padding-left: 16px; }
     .tl-date { position: static; text-align: left; width: auto; display: block; margin-bottom: 6px; }
@@ -364,7 +368,7 @@ function html() {
 <body>
 <header>
   <h1>🏗️ Latest Builds &amp; Policy Actions</h1>
-  <div class="sub">Live from the <code>/cfd</code> HOF chronology (<code>HOF/**/*.af.scm</code>) — pilot city: <strong>San Mateo</strong></div>
+  <div class="sub">Real, sourced records of city meeting agendas and adopted laws — pilot city: <strong>San Mateo</strong></div>
 
   <details class="about" open>
     <summary>What is this? <span class="about-hint">(for anyone new to the project)</span></summary>
@@ -376,24 +380,20 @@ function html() {
       pushing prices up. This tool is a companion to the county's <em>Builder's Remedy Checker</em>
       project: where that app answers "can I build here," this one answers
       "what's happening right now, and what can an ordinary person actually do about it."</p>
-      <p><strong>Where the data comes from:</strong> every item below is a real, sourced record —
-      a planning-commission agenda item or an adopted ordinance — pulled from primary city sources
-      (PrimeGov/Legistar/municipal-code portals) and stored as a small typed "citizen" file in this
-      project's <code>/cfd</code> (chronology-first development) HOF store, e.g.
-      <code>(af:city-agenda-item "san-mateo" 'planning-commission "2026-07-28" "…222 dwelling units…" "https://…")</code>.
-      Nothing here is LLM-generated at request time — this page is a plain Node.js server that
-      re-reads those files from disk on every load, so what you see is exactly what's been
-      ingested, no more and no less.</p>
+      <p><strong>Where the data comes from:</strong> every item below is a real, sourced
+      record — a planning-commission agenda item or an adopted city law — pulled directly from
+      each city's own public meeting website. Nothing here is written by AI: this page just reads
+      those saved records fresh every time you load it, so what you see is exactly what's been
+      collected, no more and no less. Hover or tap any underlined term (like CEQA) for a
+      plain-language explainer.</p>
       <p><strong>The four tabs:</strong> <em>Participate</em> is the action-first view — a
-      chronological timeline of write-a-letter and attend-a-meeting actions tied to real,
-      not-yet-held meetings. <em>Latest Builds</em> is the full raw feed of agenda items.
-      <em>Policy Actions</em> groups adopted ordinances by the project's own capture-mechanism
-      taxonomy (CEQA litigation, ballot-box supermajority, discretionary design review, etc. —
-      see <code>af-shenanigan-mechanism-type.af.scm</code>). <em>Cross-Reference</em> pairs each
-      housing-relevant build with the policy actions plausibly shaping its outcome.</p>
+      timeline of write-a-letter and attend-a-meeting actions tied to real, not-yet-held
+      meetings. <em>Latest Builds</em> is the full feed of agenda items. <em>Policy Actions</em>
+      groups adopted city laws by which incumbent tactic they match, if any. <em>Cross-Reference</em>
+      pairs each housing project with the policy actions plausibly shaping its outcome.</p>
       <p><strong>Coverage today:</strong> a handful of cities across San Mateo County (San Mateo
-      is the pilot) with items ingested so far — this is an early, actively-growing slice of the
-      county's full agenda/ordinance history, not a complete record yet.</p>
+      is the pilot) so far — this is an early, growing slice of the county's full record, not a
+      complete picture yet.</p>
     </div>
   </details>
 
@@ -465,7 +465,7 @@ function buildCard(i) {
       <div class="body-tag">\${i.body.replace(/-/g, " ")} · \${i.city}</div>
       <div class="item-text">\${escapeHtml(i.text)}</div>
       <a href="\${i.sourceUrl}" target="_blank" rel="noopener">\${i.canParticipate ? "Agenda / how to comment ↗" : "Source ↗"}</a>
-      <div class="citizen">\${i.citizen}</div>
+      <div class="citizen">Source record: \${i.citizen}</div>
     </div>\`;
 }
 
@@ -482,7 +482,7 @@ function policyCard(o) {
       <div class="item-text">\${escapeHtml(o.title)}</div>
       <div class="body-tag">adopted: \${o.adoptedDate || "—"} · effective: \${o.effectiveDate || "—"}</div>
       <a href="\${o.sourceUrl}" target="_blank" rel="noopener">Source ↗</a>
-      <div class="citizen">\${o.citizen}</div>
+      <div class="citizen">Source record: \${o.citizen}</div>
     </div>\`;
 }
 
@@ -508,11 +508,11 @@ function render() {
   renderParticipateTimeline(city, builds);
 
   const bPanel = document.getElementById("panel-builds");
-  bPanel.innerHTML = builds.length ? builds.map(buildCard).join("") : '<div class="empty">No agenda items ingested yet for this city.</div>';
+  bPanel.innerHTML = builds.length ? builds.map(buildCard).join("") : '<div class="empty">No meeting agenda items on record yet for this city.</div>';
 
   const pPanel = document.getElementById("panel-policy");
   if (!policies.length) {
-    pPanel.innerHTML = '<div class="empty">No ordinance citizens ingested yet for this city.</div>';
+    pPanel.innerHTML = '<div class="empty">No adopted city laws on record yet for this city.</div>';
   } else {
     const groups = new Map();
     for (const o of policies) {
@@ -522,7 +522,7 @@ function render() {
     }
     const order = [...Object.keys(MECHANISM_LABELS), "uncategorized"];
     pPanel.innerHTML =
-      '<div class="intro">Policy actions grouped by the project\\'s own mechanism taxonomy (the "HOW" fundamentals from the housing.shenanigans capture model: CEQA litigation, ballot-box supermajority, discretionary design review, subjective design standards, PLA-linked appeals, minimum-lot-size/setback/height caps, and Prop 13 fiscal zoning). "Uncategorized" ordinances don\\'t match any capture fundamental — often because they\\'re enabling/upzoning ordinances (SB9, ADU) rather than exclusionary ones.</div>' +
+      '<div class="intro">Adopted city laws grouped by which incumbent tactic they match — CEQA litigation, ballot-box supermajority, discretionary design review, subjective design standards, PLA-linked appeals, restrictive lot-size/setback/height rules, or fiscal zoning. "Uncategorized" laws don\\'t match any of those tactics — often because they actually enable more housing (like SB9 or ADU rules) rather than blocking it.</div>' +
       order.filter(k => groups.has(k)).map(k => \`
         <div class="mechanism-group">
           <h3>\${k === "uncategorized" ? "Uncategorized / enabling" : MECHANISM_LABELS[k]} (\${groups.get(k).length})</h3>
@@ -546,7 +546,7 @@ function render() {
         ? \`<div class="xref-related"><div class="rel-title">Related policy actions</div>\` +
           related.map(r => \`<div class="rel-item">\${escapeHtml(r.p.title)} <span class="relevance">(ord. \${r.p.ordinanceNumber || "—"}, shared-term score \${r.score})</span></div>\`).join("") +
           \`</div>\`
-        : \`<div class="xref-related"><div class="rel-title">Related policy actions</div><div class="rel-item">No matching ordinance citizens ingested yet for \${b.city} — cross-reference will populate as /fundamental-ingestion adds af:adopted-ordinance instances for this city.</div></div>\`);
+        : \`<div class="xref-related"><div class="rel-title">Related policy actions</div><div class="rel-item">No adopted laws collected yet for \${b.city} — this will fill in as more records are added for this city.</div></div>\`);
     }).join("");
   }
 
@@ -565,7 +565,7 @@ function renderParticipateTimeline(city, builds) {
   if (!upcoming.length) {
     partPanel.innerHTML =
       '<div class="intro">The fundamental problem this tracks: incumbents using procedural leverage (design-review denials, CEQA threats, ballot-box supermajority requirements) to block or delay housing supply, which pushes prices up.</div>' +
-      '<div class="empty">No upcoming (not-yet-held) meetings currently ingested' + (city === ALL_CITIES ? "" : " for " + city) + ' — check back as /fundamental-ingestion pulls new agendas.</div>';
+      '<div class="empty">No upcoming (not-yet-held) meetings on record right now' + (city === ALL_CITIES ? "" : " for " + city) + ' — check back as new meeting agendas are added.</div>';
     return;
   }
 
@@ -608,15 +608,21 @@ function timelineEntry(e) {
   const b = e.build;
   if (e.type === "letter") {
     const route = e.route;
+    const s = letterSummary(b);
     return \`
       <div class="tl-row">
         <div class="tl-date">\${e.dueLabel}</div>
         <div class="tl-card tl-letter">
           <div class="tl-head"><span class="badge letter">Write a letter</span><span class="tl-city">\${e.city}</span></div>
           <div class="item-text">Re: \${escapeHtml(b.text.slice(0, 140))}\${b.text.length > 140 ? "…" : ""}</div>
+          <div class="tl-summary">
+            <div class="tl-summary-row"><span class="tt-label">What's being decided</span>\${escapeHtml(s.concern)}</div>
+            <div class="tl-summary-row"><span class="tt-label">Why it matters for prices</span>\${escapeHtml(s.why)}</div>
+            <div class="tl-summary-row"><span class="tt-label">What to ask for</span>\${escapeHtml(s.ask)}</div>
+          </div>
           \${route
             ? \`<div class="tl-action">Send to: <a href="\${route.url}" target="_blank" rel="noopener">\${route.url} ↗</a><div class="body-tag">\${escapeHtml(route.note)}</div></div>\`
-            : \`<div class="tl-action body-tag">No contact route researched yet for \${e.city} — needs a /fundamental-ingestion pass on HOF/sources/\${e.city}/SOURCES.md.</div>\`}
+            : \`<div class="tl-action body-tag">No contact address found yet for \${e.city} — the city's public meeting page is the fallback until one is researched.</div>\`}
         </div>
       </div>\`;
   }
@@ -628,7 +634,7 @@ function timelineEntry(e) {
         <div class="body-tag">\${b.body.replace(/-/g, " ")}</div>
         <div class="item-text">\${escapeHtml(b.text)}</div>
         <a href="\${b.sourceUrl}" target="_blank" rel="noopener">Agenda / how to comment ↗</a>
-        <div class="citizen">\${b.citizen}</div>
+        <div class="citizen">Source record: \${b.citizen}</div>
       </div>
     </div>\`;
 }
