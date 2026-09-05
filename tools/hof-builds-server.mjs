@@ -193,130 +193,6 @@ function unescapeSchemeString(s) {
   return (s || "").replace(/\\(.)/g, "$1");
 }
 
-// ---------------------------------------------------------------------------
-// Antibodies tab: the "who opposes housing" chronology. This does NOT invent
-// a new data model — it reads the project's existing housing.shenanigans
-// structural-capture citizens (HOF/2026/09/05/21/af-shenanigan-instance.af.scm
-// and its seeded instances), which already record exactly this: a mechanism
-// (HOW), one or more beneficiary classes (WHO/"antibody" actor type), a
-// price-supply effect (SO WHAT), and provenance. Rather than hand-roll a
-// regex for this richer, nested s-expression shape, this is a small generic
-// Scheme-literal tokenizer/parser — robust to the (list ...) sub-forms and
-// #f placeholders that a flat regex can't cleanly express.
-// ---------------------------------------------------------------------------
-function tokenizeSexpr(text) {
-  const tokens = [];
-  let i = 0;
-  while (i < text.length) {
-    const c = text[i];
-    if (/\s/.test(c)) { i++; continue; }
-    if (c === ";") { while (i < text.length && text[i] !== "\n") i++; continue; }
-    if (c === "(") { tokens.push("("); i++; continue; }
-    if (c === ")") { tokens.push(")"); i++; continue; }
-    if (c === '"') {
-      let j = i + 1, s = "";
-      while (j < text.length && text[j] !== '"') {
-        if (text[j] === "\\") { s += text[j + 1]; j += 2; } else { s += text[j]; j++; }
-      }
-      tokens.push({ type: "string", value: s });
-      i = j + 1;
-      continue;
-    }
-    if (c === "'") {
-      let j = i + 1, s = "";
-      while (j < text.length && /[A-Za-z0-9\-?!]/.test(text[j])) { s += text[j]; j++; }
-      tokens.push({ type: "symbol", value: s });
-      i = j;
-      continue;
-    }
-    // bare atom (identifier like af:shenanigan-instance, list, or #f)
-    let j = i, s = "";
-    while (j < text.length && !/[\s()]/.test(text[j])) { s += text[j]; j++; }
-    tokens.push({ type: "atom", value: s });
-    i = j;
-  }
-  let pos = 0;
-  function parseExpr() {
-    const tok = tokens[pos];
-    if (tok === "(") {
-      pos++;
-      const items = [];
-      while (tokens[pos] !== ")") items.push(parseExpr());
-      pos++;
-      return items;
-    }
-    pos++;
-    if (tok.type === "atom" && tok.value === "#f") return null;
-    if (tok.type === "atom") return tok; // e.g. leading "list" atom inside a (list ...) form
-    return tok.value;
-  }
-  const out = [];
-  while (pos < tokens.length) out.push(parseExpr());
-  return out;
-}
-
-// Extracts the balanced "(af:shenanigan-instance ...)" call text from a file,
-// tracking paren depth so nested (list ...) sub-forms don't truncate it.
-function extractBalancedCall(src, marker) {
-  const start = src.indexOf(marker);
-  if (start === -1) return null;
-  let depth = 0, i = start;
-  for (; i < src.length; i++) {
-    if (src[i] === "(") depth++;
-    else if (src[i] === ")") { depth--; if (depth === 0) { i++; break; } }
-  }
-  return src.slice(start, i);
-}
-
-// A parsed (list 'a 'b) or (list "a" "b") form arrives as [{atom:"list"}, val, val, ...]
-// — drop the leading "list" marker atom and unwrap plain values.
-function unwrapListForm(parsed) {
-  if (!Array.isArray(parsed)) return [];
-  return parsed.slice(1);
-}
-
-async function loadShenanigans() {
-  const SHENANIGAN_ROOT = path.join(HOF_ROOT, "2026", "09", "05", "21");
-  const instances = [];
-  let files;
-  try {
-    files = await readdir(SHENANIGAN_ROOT);
-  } catch {
-    return instances;
-  }
-  for (const name of files) {
-    if (!name.endsWith(".af.scm")) continue;
-    if (!name.startsWith("af-shenanigan-") || name.includes("mechanism-type") || name.includes("beneficiary-class") || name.includes("instance.af.scm")) continue;
-    const full = path.join(SHENANIGAN_ROOT, name);
-    const src = await readFile(full, "utf8");
-    if (!src.includes("af:shenanigan-instance")) continue;
-    const call = extractBalancedCall(src, "(af:shenanigan-instance");
-    if (!call) continue;
-    let parsed;
-    try {
-      parsed = tokenizeSexpr(call)[0];
-    } catch {
-      continue;
-    }
-    // parsed = ["af:shenanigan-instance", jurisdiction, mechanism, beneficiary-classes-list, ...]
-    const [, jurisdiction, mechanism, beneficiaryClassesRaw, priceSupplyEffect, targetProject, date, outcome, sourceUrlsRaw, confidence] = parsed;
-    instances.push({
-      jurisdiction,
-      mechanism,
-      beneficiaryClasses: unwrapListForm(beneficiaryClassesRaw),
-      priceSupplyEffect,
-      targetProject: targetProject || null,
-      date: date || null,
-      outcome,
-      sourceUrls: unwrapListForm(sourceUrlsRaw),
-      confidence,
-      citizen: path.relative(REPO_ROOT, full),
-    });
-  }
-  instances.sort((a, b) => String(b.date || "0000").localeCompare(String(a.date || "0000")));
-  return instances;
-}
-
 async function loadChronology() {
   const agendaItems = [];
   const ordinances = [];
@@ -394,33 +270,6 @@ function src_includes_agenda(base) {
 }
 function src_includes_ordinance(base) {
   return base.startsWith("af-ord-") || base.includes("adopted-ordinance");
-}
-
-// Cross-reference: for a given city, pair each build with ordinances from the
-// same city whose housing-signal text plausibly bears on it (same city is the
-// only hard link the data gives us today; a shared housing-signal keyword is
-// used as a soft relevance bump so the strongest matches surface first).
-function crossReference(city, agendaItems, ordinances) {
-  const builds = agendaItems.filter((a) => a.city === city);
-  const policies = ordinances.filter((o) => o.city === city);
-  const pairs = builds
-    .filter((b) => b.housingSignal)
-    .map((b) => {
-      const related = policies
-        .filter((p) => p.housingSignal)
-        .map((p) => ({ ...p, _relevance: sharedTermScore(b.text, p.title) }))
-        .sort((x, y) => y._relevance - x._relevance);
-      return { build: b, relatedPolicies: related };
-    });
-  return { builds, policies, pairs };
-}
-
-function sharedTermScore(a, b) {
-  const wordsA = new Set(a.toLowerCase().match(/[a-z]{4,}/g) || []);
-  const wordsB = (b.toLowerCase().match(/[a-z]{4,}/g) || []);
-  let score = 0;
-  for (const w of wordsB) if (wordsA.has(w)) score++;
-  return score;
 }
 
 function html() {
@@ -541,44 +390,6 @@ function html() {
   .mechanism-group.hue-lotsize { border-left-color: var(--hue-lotsize-title); }
   .mechanism-group.hue-fiscal { border-left-color: var(--hue-fiscal-title); }
   .intro { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 18px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
-  .badge.letter { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
-  .timeline { position: relative; padding-left: 110px; }
-  .tl-row { position: relative; margin-bottom: 16px; }
-  .tl-date { position: absolute; left: -110px; top: 14px; width: 90px; text-align: right; font-size: 12px; font-weight: 700; color: var(--muted); }
-  .tl-row::before { content: ""; position: absolute; left: -22px; top: 18px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-  .tl-row::after { content: ""; position: absolute; left: -18.5px; top: 26px; bottom: -16px; width: 1px; background: var(--border); }
-  .tl-row:last-child::after { display: none; }
-  .tl-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
-  .tl-card.tl-letter { border-left: 3px solid var(--accent); }
-  .tl-card.tl-meeting { border-left: 3px solid var(--housing); }
-  .tl-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .tl-city { font-size: 12px; color: var(--muted); font-weight: 600; }
-  .tl-action { margin-top: 8px; font-size: 13px; }
-  .tl-summary { margin: 10px 0; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
-  .tl-summary-row { font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
-  .tl-summary-row:last-child { margin-bottom: 0; }
-  .tl-summary-row .tt-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent); margin-bottom: 2px; }
-  .btn-action {
-    display: inline-block; margin-top: 8px; margin-right: 8px; padding: 9px 16px;
-    border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
-    background: var(--accent); color: #0b0d0f; border: none; text-decoration: none;
-  }
-  .btn-action.btn-go { background: var(--housing); }
-  .btn-action.btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-  .sample-letter { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-  .sample-letter.show { display: block; }
-  .sample-letter textarea {
-    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
-    border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 12px;
-    line-height: 1.5; resize: vertical; margin-bottom: 8px;
-  }
-  .tl-explain { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin-top: 8px; }
-  .tl-explain .tt-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent-title); margin-bottom: 2px; }
-  @media (max-width: 640px) {
-    .timeline { padding-left: 16px; }
-    .tl-date { position: static; text-align: left; width: auto; display: block; margin-bottom: 6px; }
-    .tl-row::before, .tl-row::after { display: none; }
-  }
   .body-tag { font-size: 12px; color: var(--muted); }
   .item-text { font-size: 14px; line-height: 1.5; margin: 6px 0 10px; }
   .card a { color: var(--accent); text-decoration: none; font-size: 12px; }
@@ -611,10 +422,6 @@ function html() {
   .checklist-row-text { font-size: 12.5px; line-height: 1.5; color: var(--text); }
   .checklist-row-text .mech-label { font-weight: 700; color: var(--text-strong); }
   .checklist-row-cite { font-size: 11px; color: var(--muted-dim); margin-top: 2px; }
-  .xref-related { margin: 8px 0 0 0; padding: 10px 14px; border-left: 3px solid var(--policy); background: color-mix(in srgb, var(--policy) 8%, transparent); border-radius: 0 8px 8px 0; }
-  .xref-related .rel-title { font-size: 12px; font-weight: 700; color: var(--policy); margin-bottom: 6px; }
-  .xref-related .rel-item { font-size: 13px; margin-bottom: 4px; }
-  .xref-related .rel-item .relevance { font-size: 11px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -641,12 +448,10 @@ function html() {
       This page just re-reads those saved records every time you open it, so you always see
       exactly what's been collected — no more, no less. Hover or tap any underlined word for a
       simple explanation.</p>
-      <p><strong>The five tabs:</strong> <em>Participate</em> shows what you can DO right now —
-      letters to write and meetings to attend. <em>Upcoming Proposals</em> is every residential
-      project with a decision still ahead. <em>Policy Actions</em> groups city laws by which
-      sneaky tactic they match, if any. <em>Cross-Reference</em> connects each housing project
-      to the laws that might affect it. <em>Adversaries</em> tracks who regularly benefits from
-      blocking or delaying housing, and how.</p>
+      <p><strong>The two tabs:</strong> <em>Upcoming Proposals</em> is every residential project
+      on record for a city — items with a meeting still ahead are marked "Can participate" so
+      you know where you can still weigh in. <em>Policy Actions</em> groups adopted city laws
+      by which sneaky tactic they match, if any.</p>
       <p><strong>How much do we have so far?</strong> All 21 San Mateo County cities and the
       unincorporated county now have at least one real record — this keeps growing as more
       meetings and laws get added.</p>
@@ -654,11 +459,8 @@ function html() {
   </details>
 
   <div class="tabs">
-    <div class="tab active" data-tab="participate">Participate</div>
-    <div class="tab" data-tab="builds">Upcoming Proposals</div>
+    <div class="tab active" data-tab="builds">Upcoming Proposals</div>
     <div class="tab" data-tab="policy">Policy Actions</div>
-    <div class="tab" data-tab="xref">Cross-Reference</div>
-    <div class="tab" data-tab="adversaries">Adversaries</div>
   </div>
 </header>
 <div class="controls">
@@ -668,16 +470,12 @@ function html() {
   <span class="stat" id="stat"></span>
 </div>
 <main>
-  <div class="panel active" id="panel-participate"></div>
-  <div class="panel" id="panel-builds"></div>
+  <div class="panel active" id="panel-builds"></div>
   <div class="panel" id="panel-policy"></div>
-  <div class="panel" id="panel-xref"></div>
-  <div class="panel" id="panel-adversaries"></div>
 </main>
 <script src="/jargon.js"></script>
 <script>
 let DATA = { agendaItems: [], ordinances: [], pilotCity: "san-mateo" };
-const TODAY_ISO = new Date().toISOString().slice(0, 10);
 
 const ALL_CITIES = "__all__";
 
@@ -781,96 +579,8 @@ function policyCard(o) {
     </div>\`;
 }
 
-// ---------------------------------------------------------------------------
-// Adversaries tab — "who regularly opposes affordable housing," read from
-// this project's existing housing.shenanigans structural-capture chronology
-// (HOF/2026/09/05/21/). Each instance already names WHO benefits (the
-// "adversary" actor class), HOW (the mechanism), and the outcome — this tab
-// just groups that existing data by beneficiary class instead of inventing
-// a new tracking model.
-// ---------------------------------------------------------------------------
-const BENEFICIARY_LABELS = {
-  "incumbent-homeowners": "Incumbent homeowners",
-  "institutional-landlords": "Institutional landlords",
-  "construction-trade-unions": "Construction trade unions",
-  "large-landowners": "Large landowners",
-  "fiscally-constrained-cities": "Fiscally-constrained cities",
-};
-const BENEFICIARY_HUE_CLASS = {
-  "incumbent-homeowners": "hue-ceqa",
-  "institutional-landlords": "hue-ballot",
-  "construction-trade-unions": "hue-pla",
-  "large-landowners": "hue-lotsize",
-  "fiscally-constrained-cities": "hue-fiscal",
-};
-const OUTCOME_LABELS = {
-  "capture-succeeded": "Blocked/won",
-  "capture-defeated": "Overturned/lost",
-  "capture-contested": "Still contested",
-};
-const OUTCOME_RISK_CLASS = {
-  "capture-succeeded": "risk-confirmed",
-  "capture-defeated": "risk-not-evidenced",
-  "capture-contested": "risk-possible",
-};
-
-function adversaryCard(s) {
-  const cityName = s.jurisdiction.replace(/-/g, " ");
-  return \`
-    <div class="card">
-      <div class="card-head">
-        <span class="date">\${s.date || "undated"}</span>
-        <span>
-          <span class="badge \${OUTCOME_RISK_CLASS[s.outcome] || "risk-possible"}">\${OUTCOME_LABELS[s.outcome] || s.outcome}</span>
-          \${mechanismBadge(s.mechanism)}
-        </span>
-      </div>
-      <div class="body-tag">\${cityName}\${s.targetProject ? " · " + escapeHtml(s.targetProject) : ""}</div>
-      <div class="item-text">
-        \${s.beneficiaryClasses.map(bc => \`<span class="badge \${BENEFICIARY_HUE_CLASS[bc] || ""}">\${BENEFICIARY_LABELS[bc] || bc}</span>\`).join(" ")}
-      </div>
-      <div class="body-tag">Confidence: \${s.confidence} · Effect: \${(s.priceSupplyEffect || "").replace(/-/g, " ")}</div>
-      \${s.sourceUrls.map((u, idx) => \`<a href="\${u}" target="_blank" rel="noopener">Source \${s.sourceUrls.length > 1 ? idx + 1 : ""} ↗</a>\`).join(" · ")}
-      <div class="citizen">Source record: \${s.citizen}</div>
-    </div>\`;
-}
-
-function renderAdversaries(city) {
-  const aPanel = document.getElementById("panel-adversaries");
-  if (!aPanel) return;
-  const all = (DATA.shenanigans || []);
-  const items = all.filter(s => cityMatches(s.jurisdiction, city));
-  if (!items.length) {
-    aPanel.innerHTML =
-      '<div class="intro">Tracks who regularly benefits from blocking or delaying housing, and how — read from this project\\'s structural-capture chronology, not a new list.</div>' +
-      '<div class="empty">No tracked capture instances on record yet for this city.</div>';
-    return;
-  }
-  const groups = new Map();
-  for (const s of items) {
-    for (const bc of s.beneficiaryClasses.length ? s.beneficiaryClasses : ["uncategorized"]) {
-      if (!groups.has(bc)) groups.set(bc, []);
-      groups.get(bc).push(s);
-    }
-  }
-  const order = [...Object.keys(BENEFICIARY_LABELS), "uncategorized"];
-  aPanel.innerHTML =
-    '<div class="intro">Who regularly benefits from blocking or delaying housing, and how they do it — grouped by who gains. Hover any underlined word for a plain explanation.</div>' +
-    order.filter(k => groups.has(k)).map(k => \`
-      <div class="mechanism-group \${BENEFICIARY_HUE_CLASS[k] || ""}">
-        <h3>\${BENEFICIARY_LABELS[k] || "Uncategorized"} (\${groups.get(k).length})</h3>
-        \${groups.get(k).map(adversaryCard).join("")}
-      </div>\`).join("");
-}
-
 function cityMatches(itemCity, selected) {
   return selected === ALL_CITIES || itemCity === selected;
-}
-
-function daysUntil(dateStr) {
-  const d = new Date(dateStr + "T00:00:00");
-  const t = new Date(TODAY_ISO + "T00:00:00");
-  return Math.round((d - t) / 86400000);
 }
 
 function render() {
@@ -882,13 +592,11 @@ function render() {
 
   document.getElementById("stat").textContent = builds.length + " build" + (builds.length === 1 ? "" : "s") + " · " + policies.length + " polic" + (policies.length === 1 ? "y" : "ies");
 
-  renderParticipateTimeline(city, builds);
-
   // Upcoming Proposals shows every residential item on record for this city
   // — regardless of the checkbox above (which still controls Policy
-  // Actions/Cross-Reference) — so a commercial R&D building or a
-  // self-storage facility never shows up here no matter how the toggle is
-  // set. IMPORTANT: this does NOT hard-filter to future-dated meetings only
+  // Actions) — so a commercial R&D building or a self-storage facility
+  // never shows up here no matter how the toggle is set. IMPORTANT: this
+  // does NOT hard-filter to future-dated meetings only
   // — most ingested records are historical (a meeting already held), and a
   // filter that hid everything but not-yet-held meetings emptied this tab
   // down to almost nothing (a real regression caught in testing: only one
@@ -921,135 +629,8 @@ function render() {
         </div>\`).join("");
   }
 
-  const xPanel = document.getElementById("panel-xref");
-  const housingBuilds = DATA.agendaItems.filter(i => cityMatches(i.city, city) && i.housingSignal);
-  const housingPolicies = DATA.ordinances.filter(o => cityMatches(o.city, city) && o.housingSignal);
-  if (!housingBuilds.length) {
-    xPanel.innerHTML = '<div class="empty">No housing-signal build items for this city to cross-reference yet.</div>';
-  } else {
-    xPanel.innerHTML = housingBuilds.map(b => {
-      const related = housingPolicies
-        .filter(p => p.city === b.city)
-        .map(p => ({ p, score: sharedTermScore(b.text, p.title) }))
-        .sort((x, y) => y.score - x.score)
-        .filter(r => r.score > 0);
-      return buildCard(b) + (related.length
-        ? \`<div class="xref-related"><div class="rel-title">Related policy actions</div>\` +
-          related.map(r => \`<div class="rel-item">\${escapeHtml(r.p.title)} <span class="relevance">(ord. \${r.p.ordinanceNumber || "—"}, shared-term score \${r.score})</span></div>\`).join("") +
-          \`</div>\`
-        : \`<div class="xref-related"><div class="rel-title">Related policy actions</div><div class="rel-item">No adopted laws collected yet for \${b.city} — this will fill in as more records are added for this city.</div></div>\`);
-    }).join("");
-  }
-
-  renderAdversaries(city);
 
   annotateJargon(document.querySelector("main"));
-}
-
-// The Participate tab is a chronological action timeline, not a flat list:
-// for every not-yet-held housing-signal meeting, an activist has exactly two
-// concrete actions — write a letter (do it now, ahead of the meeting) and
-// show up to speak (on the meeting date itself). Both are plotted as dated
-// timeline entries so "what do I do, and by when" reads at a glance.
-function renderParticipateTimeline(city, builds) {
-  const partPanel = document.getElementById("panel-participate");
-  const upcoming = builds.filter(b => b.canParticipate).sort((a, b) => (a.date < b.date ? -1 : 1));
-
-  if (!upcoming.length) {
-    partPanel.innerHTML =
-      '<div class="intro">If you work a normal job here, your paycheck is supposed to cover rent — but when there aren\\'t enough homes for everyone who needs one, prices go up no matter how hard you work. Some people try to slow down or stop new homes using tricky rules (hover an underlined word to see how). This page tracks that.</div>' +
-      '<div class="empty">No upcoming (not-yet-held) meetings on record right now' + (city === ALL_CITIES ? "" : " for " + city) + ' — check back as new meeting agendas are added.</div>';
-    return;
-  }
-
-  const entries = [];
-  for (const b of upcoming) {
-    const route = DATA.writeLetterRoutes && DATA.writeLetterRoutes[b.city];
-    entries.push({
-      sortDate: b.date,
-      type: "letter",
-      city: b.city,
-      label: "Write a letter",
-      dueLabel: "before " + b.date,
-      build: b,
-      route,
-    });
-    entries.push({
-      sortDate: b.date,
-      type: "meeting",
-      city: b.city,
-      label: "Attend & speak",
-      dueLabel: b.date + " (" + daysUntilLabel(b.date) + ")",
-      build: b,
-    });
-  }
-  entries.sort((a, b) => (a.sortDate === b.sortDate ? (a.type === "letter" ? -1 : 1) : (a.sortDate < b.sortDate ? -1 : 1)));
-
-  partPanel.innerHTML =
-    '<div class="intro">If you work a normal job here, your paycheck is supposed to cover rent — but when there aren\\'t enough homes for everyone who needs one, prices go up no matter how hard you work. Some people try to slow down or stop new homes using tricky rules (hover an underlined word to see how). Two things you can actually do: <strong>write a letter</strong> now, before the meeting, and <strong>show up to speak</strong> on the day of the meeting.</div>' +
-    '<div class="timeline">' + entries.map(timelineEntry).join("") + '</div>';
-}
-
-function daysUntilLabel(dateStr) {
-  const n = daysUntil(dateStr);
-  if (n === 0) return "today";
-  if (n === 1) return "tomorrow";
-  return "in " + n + " days";
-}
-
-let sampleLetterCounter = 0;
-
-function timelineEntry(e) {
-  const b = e.build;
-  if (e.type === "letter") {
-    const route = e.route;
-    const ex = ACTION_EXPLAINERS.letter;
-    const letterId = "letter-" + (sampleLetterCounter++);
-    const letterText = generateSampleLetter(b, route);
-    return \`
-      <div class="tl-row">
-        <div class="tl-date">\${e.dueLabel}</div>
-        <div class="tl-card tl-letter">
-          <div class="tl-head"><span class="badge letter">✉️ Write a letter</span><span class="tl-city">\${e.city}</span></div>
-          <div class="item-text">About: \${escapeHtml(b.text.slice(0, 100))}\${b.text.length > 100 ? "…" : ""}</div>
-          <button class="btn-action" onclick="document.getElementById('\${letterId}').classList.toggle('show')">Write this letter (click for a sample) ▾</button>
-          <div class="sample-letter" id="\${letterId}">
-            <textarea readonly rows="10">\${escapeHtml(letterText)}</textarea>
-            \${route
-              ? \`<div class="tl-action">Send it here: <a href="\${route.url}" target="_blank" rel="noopener">\${route.url} ↗</a></div>\`
-              : \`<div class="tl-action body-tag">No contact address found yet for \${e.city} — use the city's public meeting page for now.</div>\`}
-            <div class="tl-explain"><span class="tt-label">Why this works</span>\${escapeHtml(ex.why)}</div>
-            <div class="tl-explain"><span class="tt-label">How it gets to them</span>\${escapeHtml(ex.how)}</div>
-          </div>
-        </div>
-      </div>\`;
-  }
-  const ex = ACTION_EXPLAINERS.meeting;
-  const meetingId = "meeting-" + (sampleLetterCounter++);
-  return \`
-    <div class="tl-row">
-      <div class="tl-date">\${e.dueLabel}</div>
-      <div class="tl-card tl-meeting">
-        <div class="tl-head"><span class="badge upcoming">📍 Attend &amp; speak</span><span class="tl-city">\${e.city}</span>\${mechanismBadge(b.mechanism)}</div>
-        <div class="item-text">\${escapeHtml(b.text.slice(0, 100))}\${b.text.length > 100 ? "…" : ""}</div>
-        <a class="btn-action btn-go" href="\${b.sourceUrl}" target="_blank" rel="noopener">Go here →</a>
-        <button class="btn-action btn-secondary" onclick="document.getElementById('\${meetingId}').classList.toggle('show')">More detail ▾</button>
-        <div class="sample-letter" id="\${meetingId}">
-          <div class="item-text">\${escapeHtml(b.text)}</div>
-          <div class="tl-explain"><span class="tt-label">Why this works</span>\${escapeHtml(ex.why)}</div>
-          <div class="tl-explain"><span class="tt-label">How it gets to them</span>\${escapeHtml(ex.how)}</div>
-          <div class="citizen">Source record: \${b.citizen}</div>
-        </div>
-      </div>
-    </div>\`;
-}
-
-function sharedTermScore(a, b) {
-  const wordsA = new Set((a || "").toLowerCase().match(/[a-z]{4,}/g) || []);
-  const wordsB = (b || "").toLowerCase().match(/[a-z]{4,}/g) || [];
-  let score = 0;
-  for (const w of wordsB) if (wordsA.has(w)) score++;
-  return score;
 }
 
 document.querySelectorAll(".tab").forEach(tab => {
@@ -1076,9 +657,8 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/api/chronology") {
     try {
       const { agendaItems, ordinances } = await loadChronology();
-      const shenanigans = await loadShenanigans();
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ pilotCity: PILOT_CITY, agendaItems, ordinances, shenanigans, writeLetterRoutes: WRITE_LETTER_ROUTES }));
+      res.end(JSON.stringify({ pilotCity: PILOT_CITY, agendaItems, ordinances, writeLetterRoutes: WRITE_LETTER_ROUTES }));
     } catch (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: String(err) }));
