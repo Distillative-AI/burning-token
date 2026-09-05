@@ -130,16 +130,32 @@ async function* walk(dir) {
 }
 
 // (af:city-agenda-item "city" 'body "date" "text" "url")
+// The text fields (agenda-item, title) can legitimately contain an embedded,
+// backslash-escaped double quote (Scheme's own string-escape convention,
+// e.g. \"adequately covered by a prior EIR\" inside a longer description) —
+// a naive "[^"]*" capture stops dead at that first escaped quote and silently
+// drops the whole record (this happened for real: the South San Francisco
+// gRED Center item vanished from the feed entirely until this was fixed).
+// This pattern instead matches "any char that isn't a bare backslash or
+// quote, OR a backslash followed by any char" — the standard escaped-string
+// regex — so embedded \" sequences stay inside the captured group.
 const AGENDA_RE =
-  /af:city-agenda-item\s+"([^"]+)"\s+'([a-zA-Z-]+)\s+"([^"]+)"\s+"((?:[^"])*)"\s+"([^"]+)"\s*\)/g;
+  /af:city-agenda-item\s+"([^"]+)"\s+'([a-zA-Z-]+)\s+"([^"]+)"\s+"((?:[^"\\]|\\.)*)"\s+"([^"]+)"\s*\)/g;
 
 // (af:adopted-ordinance "city" <#f|"num"> "title" <#f|"date"> <#f|"date"> "url")
 const ORD_RE =
-  /af:adopted-ordinance\s+"([^"]+)"\s+(#f|"[^"]*")\s+"((?:[^"])*)"\s+(#f|"[^"]*")\s+(#f|"[^"]*")\s+"([^"]+)"\s*\)/g;
+  /af:adopted-ordinance\s+"([^"]+)"\s+(#f|"[^"]*")\s+"((?:[^"\\]|\\.)*)"\s+(#f|"[^"]*")\s+(#f|"[^"]*")\s+"([^"]+)"\s*\)/g;
 
 function unwrapMaybeString(tok) {
   if (tok === "#f") return null;
   return tok.slice(1, -1);
+}
+
+// Un-escapes a captured Scheme string body back to display text: \" -> ",
+// \\ -> \. Applied to any field captured with the escaped-quote-tolerant
+// pattern above.
+function unescapeSchemeString(s) {
+  return (s || "").replace(/\\(.)/g, "$1");
 }
 
 async function loadChronology() {
@@ -158,7 +174,8 @@ async function loadChronology() {
       const bodyOnly = src.replace(/\(define \(af:city-agenda-item[\s\S]*?\n\n/, "");
       let m;
       while ((m = AGENDA_RE.exec(bodyOnly))) {
-        const [, city, body, meetingDate, agendaItem, sourceUrl] = m;
+        const [, city, body, meetingDate, agendaItemRaw, sourceUrl] = m;
+        const agendaItem = unescapeSchemeString(agendaItemRaw);
         const isCancelled = /^cancell?ed\b/i.test(agendaItem) || /notice of cancellation/i.test(agendaItem);
         agendaItems.push({
           kind: "build",
@@ -185,7 +202,8 @@ async function loadChronology() {
       const bodyOnly = src.replace(/\(define \(af:adopted-ordinance[\s\S]*?\n\n/, "");
       let m;
       while ((m = ORD_RE.exec(bodyOnly))) {
-        const [, city, ordNum, title, adoptedDate, effectiveDate, sourceUrl] = m;
+        const [, city, ordNum, titleRaw, adoptedDate, effectiveDate, sourceUrl] = m;
+        const title = unescapeSchemeString(titleRaw);
         ordinances.push({
           kind: "policy",
           city,

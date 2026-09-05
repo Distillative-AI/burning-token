@@ -18,11 +18,21 @@
 ;;   it is referenced as living in the "Agenda Packet" link (distinct from "Agenda") on the
 ;;   same ViewMeeting page, not yet opened — do not invent amendment section numbers not
 ;;   present in the source.
-;; Source: https://meetings.redwoodcity.org/AgendaOnline/Meetings/ViewMeeting?id=2701&doctype=1
+;; Source: direct Agenda Packet PDF link for this meeting, taken from the "View Agenda
+;;   Packet for Planning Commission Meeting ... 5/5/2026" link on the ViewMeeting page
+;;   (was: https://meetings.redwoodcity.org/AgendaOnline/Meetings/ViewMeeting?id=2701&doctype=1,
+;;   the meeting-index page itself, not a document). CAVEAT: this OnBase Agenda Online
+;;   Downloadfile URL serves an HTML "Downloading, please wait..." shell that then
+;;   JS-polls for the actual PDF stream — a plain HTTP GET (curl) does not receive the
+;;   PDF bytes directly, only a real browser navigation does. It is still the correct,
+;;   most-direct documented link (what a person clicking "View Agenda Packet" actually
+;;   follows), not a further-upstream index page.
 ;;   (resolved from Granicus clip_id=3680; confirms Granicus and OnBase Agenda Online are
 ;;   linked/same underlying system for Redwood City, not two separate silos)
 ;; Pulled-date: 2026-09-05
 ;; Created: 2026-09-05 15:00:00
+;; Updated: 2026-09-05 — source-url replaced with the direct Agenda Packet PDF link (was
+;;   the ViewMeeting index page) so the UI can link straight to the source document.
 ;;
 ;; @gherkin
 ;; Scenario: the item is well-formed under the schema
@@ -40,4 +50,4 @@
     'planning-commission
     "2026-05-05"
     "Item 6.B: Recommendation to the City Council to adopt Zoning Code amendments that implement General Plan Housing Element programs and development review streamlining strategies, plus other code changes for clarity; Recommendation: adopt Resolution 26-02 recommending Council adopt the proposed Zoning Code amendments; CEQA: Common Sense Exemption (CEQA Guidelines § 15061(b)(3)); statutory exemption also cited"
-    "https://meetings.redwoodcity.org/AgendaOnline/Meetings/ViewMeeting?id=2701&doctype=1"))
+    "https://meetings.redwoodcity.org/AgendaOnline/Documents/Downloadfile/Planning_Commission_Meeting_2701_Agenda_Packet_5_5_2026_6_00_00_PM.pdf?documentType=5&meetingId=2701&isAttachment=True"))

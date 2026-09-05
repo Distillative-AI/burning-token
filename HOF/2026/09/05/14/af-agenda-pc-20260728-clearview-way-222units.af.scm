@@ -15,9 +15,18 @@
 ;;   infill-housing thread (PA reference not separately stated on the public agenda page
 ;;   pulled; only the PRC §21080.66 exemption citation is directly sourced — do not invent a
 ;;   PA number not present in the source).
-;; Source: https://sanmateo.primegov.com/Portal/Meeting?meetingTemplateId=10723
+;; Source: direct Agenda Report PDF for this item (verified by content — contains a link
+;;   to https://www.cityofsanmateo.org/4907/3000-Clearview-Residential-Redevelopment),
+;;   not the meeting portal page: the portal page
+;;   (https://sanmateo.primegov.com/Portal/Meeting?meetingTemplateId=10723) lists three
+;;   per-item "Download Agenda Report" attachments (JS-rendered, not visible to a plain
+;;   fetch); this is the historyId=4c70c071-0bdd-4990-97d5-8c93439935cd one, downloaded
+;;   and PDF-string-matched against "3000-Clearview" this pass to confirm it's the right
+;;   item.
 ;; Pulled-date: 2026-09-05
 ;; Created: 2026-09-05 14:00:00
+;; Updated: 2026-09-05 — source-url replaced with the direct per-item Agenda Report PDF
+;;   (was the meeting portal page) so the UI can link straight to the source document.
 ;;
 ;; @gherkin
 ;; Scenario: the item is well-formed under the schema
@@ -35,4 +44,4 @@
     'planning-commission
     "2026-07-28"
     "Public Hearing Item 2: 3000/3155 Clearview Way Multi-Family Residential Development — 222 dwelling units; Site Plan and Architectural Review + Site Development Planning Application + Vesting Tentative Parcel Map; CEQA-exempt under Public Resources Code § 21080.66 (state streamlining exemption, no MND/EIR required)"
-    "https://sanmateo.primegov.com/Portal/Meeting?meetingTemplateId=10723"))
+    "https://sanmateo.primegov.com/api/compilemeetingattachmenthistory/historyattachment/?historyId=4c70c071-0bdd-4990-97d5-8c93439935cd"))

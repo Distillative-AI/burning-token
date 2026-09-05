@@ -11,10 +11,18 @@
 ;;   follow-up work. agenda-item text below is therefore deliberately scoped to what is
 ;;   actually known (packet existence + size + the standing housing-item candidate types
 ;;   named in the source note), not invented line-item content.
-;; Source: https://www.menlopark.gov/Agendas-and-minutes#section-9 (index page); packet PDF —
-;;   https://www.menlopark.gov/files/sharedassets/public/v/1/agendas-and-minutes/planning-commission/2026-meetings/agendas/20260824-Planning-Commission-agenda-packet.pdf
+;; Source: direct Agenda Packet PDF, re-verified 2026-09-05: fetched
+;;   Content-Type: application/pdf, Content-Length: 9,685,091 bytes (≈9MB, matches the
+;;   page's displayed size). CORRECTION: the URL previously stored here
+;;   (.../2026-meetings/agendas/20260824-Planning-Commission-agenda-packet.pdf, plural
+;;   "agendas", capitalized filename, /v/1/) now 404s — the city's asset path changed to
+;;   singular "agenda" with a bumped version segment (/v/2/) and a lowercase filename.
+;;   Re-resolved live from the current Agendas-and-minutes page rather than guessed/
+;;   pattern-matched from the old URL.
 ;; Pulled-date: 2026-09-05
 ;; Created: 2026-09-05 13:00:00
+;; Updated: 2026-09-05 — fixed a dead source-url (city renamed/reversioned the asset path)
+;;   to the current working direct PDF link.
 ;;
 ;; @gherkin
 ;; Scenario: the item is well-formed under the schema
@@ -28,4 +36,4 @@
     'planning-commission
     "2026-08-24"
     "Agenda packet published (9MB); line items not yet extracted — candidate housing items per pull-plan note: density bonus applications, SB9/ADU permits, Builder's Remedy project hearings"
-    "https://www.menlopark.gov/files/sharedassets/public/v/1/agendas-and-minutes/planning-commission/2026-meetings/agendas/20260824-Planning-Commission-agenda-packet.pdf"))
+    "https://www.menlopark.gov/files/sharedassets/public/v/2/agendas-and-minutes/planning-commission/2026-meetings/agenda/20260824-planning-commission-agenda-packet.pdf"))
