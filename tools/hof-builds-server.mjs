@@ -61,6 +61,23 @@ const WRITE_LETTER_ROUTES = {
 const HOUSING_SIGNAL =
   /\b(dwelling units?|residential|multi-family|housing|adu\b|density bonus|builder'?s remedy|apartments?|condominiums?|units?\b|rhna|sb\s?9|sb\s?35|sb\s?79|sb\s?10|zoning|upzon|rezon)/i;
 
+// A citizen's own text sometimes explicitly says it is NOT a housing item —
+// usually because it's being recorded as a deliberate contrast case (e.g.
+// the South San Francisco gRED Center R&D building, ingested specifically
+// to compare CEQA-streamlining treatment of commercial vs. residential
+// development). The plain HOUSING_SIGNAL regex still matches text like that
+// because it explains itself using the word "housing" — so check for an
+// explicit self-declared exclusion FIRST and let it override every other
+// signal. This is a real bug fix, not a style choice: without it, an item
+// whose own description says "NOT a housing project" still showed up
+// badged "Housing" in the UI.
+const NOT_HOUSING_OVERRIDE = /\bnot\b[^.;]{0,20}\bhousing\b|non-housing/i;
+
+function isHousingSignal(text) {
+  if (NOT_HOUSING_OVERRIDE.test(text)) return false;
+  return HOUSING_SIGNAL.test(text);
+}
+
 // The mechanism taxonomy is not invented here — it's the project's own closed
 // "fundamentals" enum from HOF/2026/09/05/21/af-shenanigan-mechanism-type.af.scm
 // (the HOW axis of the housing.shenanigans structural-capture model). Policy
@@ -184,7 +201,7 @@ async function loadChronology() {
           date: meetingDate,
           text: agendaItem,
           sourceUrl,
-          housingSignal: HOUSING_SIGNAL.test(agendaItem),
+          housingSignal: isHousingSignal(agendaItem),
           mechanism: classifyMechanism(agendaItem),
           isUpcoming: !isCancelled && meetingDate >= TODAY,
           canParticipate: !isCancelled && meetingDate >= TODAY, // public body meeting, not yet held
@@ -213,7 +230,7 @@ async function loadChronology() {
           adoptedDate: unwrapMaybeString(adoptedDate),
           effectiveDate: unwrapMaybeString(effectiveDate),
           sourceUrl,
-          housingSignal: HOUSING_SIGNAL.test(title),
+          housingSignal: isHousingSignal(title),
           mechanism: classifyMechanism(title),
           citizen: rel,
         });
@@ -466,12 +483,15 @@ function html() {
   <details class="about" open>
     <summary>What is this? <span class="about-hint">(explained simply)</span></summary>
     <div class="about-body">
-      <p><strong>The big problem:</strong> in San Mateo County, it's really hard to build new
-      homes. More people want homes than there are homes to live in — and when that happens,
-      prices go up, like when there's only one ice cream truck for a whole neighborhood. Some
-      people who already own a home actually WANT it to stay that way, so they use tricky rules
-      and slow-downs (hover any underlined word, like CEQA, to see how) to stop or delay new
-      homes from being built. This page is a companion to the county's
+      <p><strong>The big problem:</strong> if you work a normal job here — retail, a restaurant,
+      a caregiver, a teacher's aide — your paycheck is supposed to cover a place to live. In San
+      Mateo County it often doesn't. When there are way more people who need a home than there
+      are homes for them, landlords can charge more and still fill every unit — that's not
+      greed, that's just what happens when something's scarce. The actual fix is simple: build
+      more homes. But building new homes here is hard, on purpose — some people who already own
+      a home want it to stay that way, so they use tricky rules and slow-downs (hover any
+      underlined word, like CEQA, to see how) to stop or delay new homes from being built. This
+      page is a companion to the county's
       <em>Builder's Remedy Checker</em> project: that app answers "can I build here?" — this one
       answers "what's happening right now, and what can I actually do about it?"</p>
       <p><strong>Where does this info come from?</strong> Every item on this page is real —
@@ -491,14 +511,14 @@ function html() {
 
   <div class="tabs">
     <div class="tab active" data-tab="participate">Participate</div>
-    <div class="tab" data-tab="builds">Latest Builds</div>
+    <div class="tab" data-tab="builds">Housing Builds</div>
     <div class="tab" data-tab="policy">Policy Actions</div>
     <div class="tab" data-tab="xref">Cross-Reference</div>
   </div>
 </header>
 <div class="controls">
   <select id="citySelect"></select>
-  <label class="chk"><input type="checkbox" id="housingOnly" /> housing-signal only</label>
+  <label class="chk"><input type="checkbox" id="housingOnly" checked /> residential only (uncheck to see everything, including non-housing items like commercial/office projects)</label>
   <button class="primary" id="refresh">Refresh</button>
   <span class="stat" id="stat"></span>
 </div>
@@ -636,8 +656,14 @@ function render() {
 
   renderParticipateTimeline(city, builds);
 
+  // Housing Builds always shows residential-only, regardless of the
+  // checkbox above (which still controls Policy Actions/Cross-Reference) —
+  // this section exists specifically to answer "what housing is being
+  // built," and a commercial R&D building or a self-storage facility isn't
+  // an answer to that question no matter how the toggle is set.
+  const housingOnlyBuilds = DATA.agendaItems.filter(i => cityMatches(i.city, city) && i.housingSignal);
   const bPanel = document.getElementById("panel-builds");
-  bPanel.innerHTML = builds.length ? builds.map(buildCard).join("") : '<div class="empty">No meeting agenda items on record yet for this city.</div>';
+  bPanel.innerHTML = housingOnlyBuilds.length ? housingOnlyBuilds.map(buildCard).join("") : '<div class="empty">No residential housing items on record yet for this city.</div>';
 
   const pPanel = document.getElementById("panel-policy");
   if (!policies.length) {
@@ -693,7 +719,7 @@ function renderParticipateTimeline(city, builds) {
 
   if (!upcoming.length) {
     partPanel.innerHTML =
-      '<div class="intro">Here\\'s the big idea: when there aren\\'t enough homes for everyone who needs one, prices go up. Some people try to slow down or stop new homes using tricky rules (hover an underlined word to see how). This page tracks that.</div>' +
+      '<div class="intro">If you work a normal job here, your paycheck is supposed to cover rent — but when there aren\\'t enough homes for everyone who needs one, prices go up no matter how hard you work. Some people try to slow down or stop new homes using tricky rules (hover an underlined word to see how). This page tracks that.</div>' +
       '<div class="empty">No upcoming (not-yet-held) meetings on record right now' + (city === ALL_CITIES ? "" : " for " + city) + ' — check back as new meeting agendas are added.</div>';
     return;
   }
@@ -722,7 +748,7 @@ function renderParticipateTimeline(city, builds) {
   entries.sort((a, b) => (a.sortDate === b.sortDate ? (a.type === "letter" ? -1 : 1) : (a.sortDate < b.sortDate ? -1 : 1)));
 
   partPanel.innerHTML =
-    '<div class="intro">Here\\'s the big idea: when there aren\\'t enough homes for everyone who needs one, prices go up. Some people try to slow down or stop new homes using tricky rules (hover an underlined word to see how). Two things you can actually do: <strong>write a letter</strong> now, before the meeting, and <strong>show up to speak</strong> on the day of the meeting.</div>' +
+    '<div class="intro">If you work a normal job here, your paycheck is supposed to cover rent — but when there aren\\'t enough homes for everyone who needs one, prices go up no matter how hard you work. Some people try to slow down or stop new homes using tricky rules (hover an underlined word to see how). Two things you can actually do: <strong>write a letter</strong> now, before the meeting, and <strong>show up to speak</strong> on the day of the meeting.</div>' +
     '<div class="timeline">' + entries.map(timelineEntry).join("") + '</div>';
 }
 

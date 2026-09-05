@@ -235,7 +235,7 @@ document.addEventListener("click", () => {
 const MECHANISM_LETTER_TALKING_POINTS = {
   "ceqa-litigation": {
     concern: "This might get challenged with an environmental lawsuit (CEQA) to slow it down or stop it — even if it wouldn't really hurt the environment.",
-    why: "Think of it like a lemonade stand that gets tied up in permits for years before it can open: fewer stands means the lemonade you can buy costs more. Fewer new homes built means the homes that exist cost more too.",
+    why: "If a project gets tied up in court for years, that's years where those homes don't exist. Meanwhile the number of people who need a place to live keeps growing — so the homes that DO exist get more expensive, because more people are competing for the same, too-small supply.",
   },
   "ballot-box-supermajority": {
     concern: "This might need a public vote before it can move forward, instead of just a normal city council decision.",
