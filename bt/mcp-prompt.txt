@@ -1,0 +1,7 @@
+Install the Burning Token MCP in this AI IDE.
+
+https://app.burningtoken.dev/api/mcp
+
+If it asks for auth, connect my Burning Token session.
+
+When you start, call `get_my_status` and tell me the time left to submit, my pending tasks, and how my projects are going. If I ask about a project, use `get_my_projects`. If I want to fill or change the submission, use `get_my_submission` and `update_my_submission`. When I ask about the hackathon, always call `ask_hackathon` with my question in `question`, even if you already know the answer. Then use the other tools if you need official content. Don't answer those from memory.
