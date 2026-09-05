@@ -175,6 +175,130 @@ function unescapeSchemeString(s) {
   return (s || "").replace(/\\(.)/g, "$1");
 }
 
+// ---------------------------------------------------------------------------
+// Antibodies tab: the "who opposes housing" chronology. This does NOT invent
+// a new data model — it reads the project's existing housing.shenanigans
+// structural-capture citizens (HOF/2026/09/05/21/af-shenanigan-instance.af.scm
+// and its seeded instances), which already record exactly this: a mechanism
+// (HOW), one or more beneficiary classes (WHO/"antibody" actor type), a
+// price-supply effect (SO WHAT), and provenance. Rather than hand-roll a
+// regex for this richer, nested s-expression shape, this is a small generic
+// Scheme-literal tokenizer/parser — robust to the (list ...) sub-forms and
+// #f placeholders that a flat regex can't cleanly express.
+// ---------------------------------------------------------------------------
+function tokenizeSexpr(text) {
+  const tokens = [];
+  let i = 0;
+  while (i < text.length) {
+    const c = text[i];
+    if (/\s/.test(c)) { i++; continue; }
+    if (c === ";") { while (i < text.length && text[i] !== "\n") i++; continue; }
+    if (c === "(") { tokens.push("("); i++; continue; }
+    if (c === ")") { tokens.push(")"); i++; continue; }
+    if (c === '"') {
+      let j = i + 1, s = "";
+      while (j < text.length && text[j] !== '"') {
+        if (text[j] === "\\") { s += text[j + 1]; j += 2; } else { s += text[j]; j++; }
+      }
+      tokens.push({ type: "string", value: s });
+      i = j + 1;
+      continue;
+    }
+    if (c === "'") {
+      let j = i + 1, s = "";
+      while (j < text.length && /[A-Za-z0-9\-?!]/.test(text[j])) { s += text[j]; j++; }
+      tokens.push({ type: "symbol", value: s });
+      i = j;
+      continue;
+    }
+    // bare atom (identifier like af:shenanigan-instance, list, or #f)
+    let j = i, s = "";
+    while (j < text.length && !/[\s()]/.test(text[j])) { s += text[j]; j++; }
+    tokens.push({ type: "atom", value: s });
+    i = j;
+  }
+  let pos = 0;
+  function parseExpr() {
+    const tok = tokens[pos];
+    if (tok === "(") {
+      pos++;
+      const items = [];
+      while (tokens[pos] !== ")") items.push(parseExpr());
+      pos++;
+      return items;
+    }
+    pos++;
+    if (tok.type === "atom" && tok.value === "#f") return null;
+    if (tok.type === "atom") return tok; // e.g. leading "list" atom inside a (list ...) form
+    return tok.value;
+  }
+  const out = [];
+  while (pos < tokens.length) out.push(parseExpr());
+  return out;
+}
+
+// Extracts the balanced "(af:shenanigan-instance ...)" call text from a file,
+// tracking paren depth so nested (list ...) sub-forms don't truncate it.
+function extractBalancedCall(src, marker) {
+  const start = src.indexOf(marker);
+  if (start === -1) return null;
+  let depth = 0, i = start;
+  for (; i < src.length; i++) {
+    if (src[i] === "(") depth++;
+    else if (src[i] === ")") { depth--; if (depth === 0) { i++; break; } }
+  }
+  return src.slice(start, i);
+}
+
+// A parsed (list 'a 'b) or (list "a" "b") form arrives as [{atom:"list"}, val, val, ...]
+// — drop the leading "list" marker atom and unwrap plain values.
+function unwrapListForm(parsed) {
+  if (!Array.isArray(parsed)) return [];
+  return parsed.slice(1);
+}
+
+async function loadShenanigans() {
+  const SHENANIGAN_ROOT = path.join(HOF_ROOT, "2026", "09", "05", "21");
+  const instances = [];
+  let files;
+  try {
+    files = await readdir(SHENANIGAN_ROOT);
+  } catch {
+    return instances;
+  }
+  for (const name of files) {
+    if (!name.endsWith(".af.scm")) continue;
+    if (!name.startsWith("af-shenanigan-") || name.includes("mechanism-type") || name.includes("beneficiary-class") || name.includes("instance.af.scm")) continue;
+    const full = path.join(SHENANIGAN_ROOT, name);
+    const src = await readFile(full, "utf8");
+    if (!src.includes("af:shenanigan-instance")) continue;
+    const call = extractBalancedCall(src, "(af:shenanigan-instance");
+    if (!call) continue;
+    let parsed;
+    try {
+      parsed = tokenizeSexpr(call)[0];
+    } catch {
+      continue;
+    }
+    // parsed = ["af:shenanigan-instance", jurisdiction, mechanism, beneficiary-classes-list, ...]
+    const [, jurisdiction, mechanism, beneficiaryClassesRaw, priceSupplyEffect, targetProject, date, outcome, sourceUrlsRaw, confidence] = parsed;
+    instances.push({
+      jurisdiction,
+      mechanism,
+      beneficiaryClasses: unwrapListForm(beneficiaryClassesRaw),
+      priceSupplyEffect,
+      targetProject: targetProject || null,
+      date: date || null,
+      outcome,
+      sourceUrls: unwrapListForm(sourceUrlsRaw),
+      confidence,
+      citizen: path.relative(REPO_ROOT, full),
+    });
+  }
+  instances.sort((a, b) => String(b.date || "0000").localeCompare(String(a.date || "0000")));
+  return instances;
+}
+
 async function loadChronology() {
   const agendaItems = [];
   const ordinances = [];
@@ -499,21 +623,24 @@ function html() {
       This page just re-reads those saved records every time you open it, so you always see
       exactly what's been collected — no more, no less. Hover or tap any underlined word for a
       simple explanation.</p>
-      <p><strong>The four tabs:</strong> <em>Participate</em> shows what you can DO right now —
-      letters to write and meetings to attend. <em>Latest Builds</em> is every housing project
-      we know about. <em>Policy Actions</em> groups city laws by which sneaky tactic they match,
-      if any. <em>Cross-Reference</em> connects each housing project to the laws that might
-      affect it.</p>
-      <p><strong>How much do we have so far?</strong> Just a handful of cities right now (San
-      Mateo is where we started) — this grows over time, it's not the whole picture yet.</p>
+      <p><strong>The five tabs:</strong> <em>Participate</em> shows what you can DO right now —
+      letters to write and meetings to attend. <em>Upcoming Proposals</em> is every residential
+      project with a decision still ahead. <em>Policy Actions</em> groups city laws by which
+      sneaky tactic they match, if any. <em>Cross-Reference</em> connects each housing project
+      to the laws that might affect it. <em>Adversaries</em> tracks who regularly benefits from
+      blocking or delaying housing, and how.</p>
+      <p><strong>How much do we have so far?</strong> All 21 San Mateo County cities and the
+      unincorporated county now have at least one real record — this keeps growing as more
+      meetings and laws get added.</p>
     </div>
   </details>
 
   <div class="tabs">
     <div class="tab active" data-tab="participate">Participate</div>
-    <div class="tab" data-tab="builds">Housing Builds</div>
+    <div class="tab" data-tab="builds">Upcoming Proposals</div>
     <div class="tab" data-tab="policy">Policy Actions</div>
     <div class="tab" data-tab="xref">Cross-Reference</div>
+    <div class="tab" data-tab="adversaries">Adversaries</div>
   </div>
 </header>
 <div class="controls">
@@ -527,6 +654,7 @@ function html() {
   <div class="panel" id="panel-builds"></div>
   <div class="panel" id="panel-policy"></div>
   <div class="panel" id="panel-xref"></div>
+  <div class="panel" id="panel-adversaries"></div>
 </main>
 <script src="/jargon.js"></script>
 <script>
@@ -635,6 +763,88 @@ function policyCard(o) {
     </div>\`;
 }
 
+// ---------------------------------------------------------------------------
+// Adversaries tab — "who regularly opposes affordable housing," read from
+// this project's existing housing.shenanigans structural-capture chronology
+// (HOF/2026/09/05/21/). Each instance already names WHO benefits (the
+// "adversary" actor class), HOW (the mechanism), and the outcome — this tab
+// just groups that existing data by beneficiary class instead of inventing
+// a new tracking model.
+// ---------------------------------------------------------------------------
+const BENEFICIARY_LABELS = {
+  "incumbent-homeowners": "Incumbent homeowners",
+  "institutional-landlords": "Institutional landlords",
+  "construction-trade-unions": "Construction trade unions",
+  "large-landowners": "Large landowners",
+  "fiscally-constrained-cities": "Fiscally-constrained cities",
+};
+const BENEFICIARY_HUE_CLASS = {
+  "incumbent-homeowners": "hue-ceqa",
+  "institutional-landlords": "hue-ballot",
+  "construction-trade-unions": "hue-pla",
+  "large-landowners": "hue-lotsize",
+  "fiscally-constrained-cities": "hue-fiscal",
+};
+const OUTCOME_LABELS = {
+  "capture-succeeded": "Blocked/won",
+  "capture-defeated": "Overturned/lost",
+  "capture-contested": "Still contested",
+};
+const OUTCOME_RISK_CLASS = {
+  "capture-succeeded": "risk-confirmed",
+  "capture-defeated": "risk-not-evidenced",
+  "capture-contested": "risk-possible",
+};
+
+function adversaryCard(s) {
+  const cityName = s.jurisdiction.replace(/-/g, " ");
+  return \`
+    <div class="card">
+      <div class="card-head">
+        <span class="date">\${s.date || "undated"}</span>
+        <span>
+          <span class="badge \${OUTCOME_RISK_CLASS[s.outcome] || "risk-possible"}">\${OUTCOME_LABELS[s.outcome] || s.outcome}</span>
+          \${mechanismBadge(s.mechanism)}
+        </span>
+      </div>
+      <div class="body-tag">\${cityName}\${s.targetProject ? " · " + escapeHtml(s.targetProject) : ""}</div>
+      <div class="item-text">
+        \${s.beneficiaryClasses.map(bc => \`<span class="badge \${BENEFICIARY_HUE_CLASS[bc] || ""}">\${BENEFICIARY_LABELS[bc] || bc}</span>\`).join(" ")}
+      </div>
+      <div class="body-tag">Confidence: \${s.confidence} · Effect: \${(s.priceSupplyEffect || "").replace(/-/g, " ")}</div>
+      \${s.sourceUrls.map((u, idx) => \`<a href="\${u}" target="_blank" rel="noopener">Source \${s.sourceUrls.length > 1 ? idx + 1 : ""} ↗</a>\`).join(" · ")}
+      <div class="citizen">Source record: \${s.citizen}</div>
+    </div>\`;
+}
+
+function renderAdversaries(city) {
+  const aPanel = document.getElementById("panel-adversaries");
+  if (!aPanel) return;
+  const all = (DATA.shenanigans || []);
+  const items = all.filter(s => cityMatches(s.jurisdiction, city));
+  if (!items.length) {
+    aPanel.innerHTML =
+      '<div class="intro">Tracks who regularly benefits from blocking or delaying housing, and how — read from this project\\'s structural-capture chronology, not a new list.</div>' +
+      '<div class="empty">No tracked capture instances on record yet for this city.</div>';
+    return;
+  }
+  const groups = new Map();
+  for (const s of items) {
+    for (const bc of s.beneficiaryClasses.length ? s.beneficiaryClasses : ["uncategorized"]) {
+      if (!groups.has(bc)) groups.set(bc, []);
+      groups.get(bc).push(s);
+    }
+  }
+  const order = [...Object.keys(BENEFICIARY_LABELS), "uncategorized"];
+  aPanel.innerHTML =
+    '<div class="intro">Who regularly benefits from blocking or delaying housing, and how they do it — grouped by who gains. Hover any underlined word for a plain explanation.</div>' +
+    order.filter(k => groups.has(k)).map(k => \`
+      <div class="mechanism-group \${BENEFICIARY_HUE_CLASS[k] || ""}">
+        <h3>\${BENEFICIARY_LABELS[k] || "Uncategorized"} (\${groups.get(k).length})</h3>
+        \${groups.get(k).map(adversaryCard).join("")}
+      </div>\`).join("");
+}
+
 function cityMatches(itemCity, selected) {
   return selected === ALL_CITIES || itemCity === selected;
 }
@@ -656,14 +866,19 @@ function render() {
 
   renderParticipateTimeline(city, builds);
 
-  // Housing Builds always shows residential-only, regardless of the
-  // checkbox above (which still controls Policy Actions/Cross-Reference) —
-  // this section exists specifically to answer "what housing is being
-  // built," and a commercial R&D building or a self-storage facility isn't
-  // an answer to that question no matter how the toggle is set.
-  const housingOnlyBuilds = DATA.agendaItems.filter(i => cityMatches(i.city, city) && i.housingSignal);
+  // Upcoming Proposals always shows residential-only, not-yet-decided items,
+  // regardless of the checkbox above (which still controls Policy
+  // Actions/Cross-Reference) — this section exists specifically to answer
+  // "what housing is being proposed right now that I could still weigh in
+  // on," so a commercial R&D building, a self-storage facility, or a
+  // proposal that was already decided months ago isn't an answer to that
+  // question no matter how the toggle is set. (The full past record,
+  // decided or not, is still in Cross-Reference.)
+  const upcomingProposals = DATA.agendaItems.filter(i => cityMatches(i.city, city) && i.housingSignal && i.canParticipate);
   const bPanel = document.getElementById("panel-builds");
-  bPanel.innerHTML = housingOnlyBuilds.length ? housingOnlyBuilds.map(buildCard).join("") : '<div class="empty">No residential housing items on record yet for this city.</div>';
+  bPanel.innerHTML =
+    '<div class="intro">Residential proposals with a meeting still ahead — not yet approved, denied, or decided. Already-decided housing history for this city is in the Cross-Reference tab.</div>' +
+    (upcomingProposals.length ? upcomingProposals.map(buildCard).join("") : '<div class="empty">No upcoming residential proposals on record right now for this city.</div>');
 
   const pPanel = document.getElementById("panel-policy");
   if (!policies.length) {
@@ -704,6 +919,8 @@ function render() {
         : \`<div class="xref-related"><div class="rel-title">Related policy actions</div><div class="rel-item">No adopted laws collected yet for \${b.city} — this will fill in as more records are added for this city.</div></div>\`);
     }).join("");
   }
+
+  renderAdversaries(city);
 
   annotateJargon(document.querySelector("main"));
 }
@@ -838,8 +1055,9 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/api/chronology") {
     try {
       const { agendaItems, ordinances } = await loadChronology();
+      const shenanigans = await loadShenanigans();
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ pilotCity: PILOT_CITY, agendaItems, ordinances, writeLetterRoutes: WRITE_LETTER_ROUTES }));
+      res.end(JSON.stringify({ pilotCity: PILOT_CITY, agendaItems, ordinances, shenanigans, writeLetterRoutes: WRITE_LETTER_ROUTES }));
     } catch (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: String(err) }));
