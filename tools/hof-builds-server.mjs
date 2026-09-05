@@ -290,18 +290,24 @@ function html() {
     --text-strong: oklch(0.92 0.01 240);
     --muted: oklch(0.7 0.008 240);
     --muted-dim: oklch(0.58 0.006 240);
-    --accent: oklch(0.72 0.15 42);
-    --accent-title: oklch(0.78 0.12 42);
+    /* Primary accent deliberately uses the site's teal hue (178), not its
+       orange one (42) — orange reads as Claude's brand color in this
+       context, so it's kept out of the global UI chrome entirely and only
+       survives, recolored to red (20), on the one badge where it's
+       semantically apt (CEQA litigation = alarm). */
+    --accent: oklch(0.78 0.11 178);
+    --accent-title: oklch(0.82 0.11 178);
     --housing: oklch(0.82 0.11 125);
     --housing-bg: oklch(0.15 0.025 125);
     --other: var(--muted-dim);
     --policy: oklch(0.82 0.11 258);
     --policy-bg: oklch(0.15 0.025 258);
-    /* mechanism hues, cycling the site's own topic palette */
-    --hue-ceqa: 42;      --hue-ceqa-bg: oklch(0.15 0.025 42);      --hue-ceqa-title: oklch(0.78 0.12 42);
+    /* mechanism hues, cycling the site's own topic palette (orange/42
+       excluded — see note above) */
+    --hue-ceqa: 20;      --hue-ceqa-bg: oklch(0.15 0.025 20);      --hue-ceqa-title: oklch(0.78 0.13 20);
     --hue-ballot: 258;   --hue-ballot-bg: oklch(0.15 0.025 258);   --hue-ballot-title: oklch(0.82 0.11 258);
     --hue-discretion: 95; --hue-discretion-bg: oklch(0.15 0.025 95); --hue-discretion-title: oklch(0.78 0.12 95);
-    --hue-subjective: 178; --hue-subjective-bg: oklch(0.15 0.025 178); --hue-subjective-title: oklch(0.82 0.11 178);
+    --hue-subjective: 149; --hue-subjective-bg: oklch(0.15 0.025 149); --hue-subjective-title: oklch(0.82 0.11 149);
     --hue-pla: 220;      --hue-pla-bg: oklch(0.15 0.025 220);      --hue-pla-title: oklch(0.82 0.11 220);
     --hue-lotsize: 125;  --hue-lotsize-bg: oklch(0.15 0.025 125);  --hue-lotsize-title: oklch(0.82 0.11 125);
     --hue-fiscal: 240;   --hue-fiscal-bg: oklch(0.16 0.005 240);   --hue-fiscal-title: oklch(0.86 0.055 220);
@@ -442,29 +448,28 @@ function html() {
   <div class="sub">Real, sourced records of city meeting agendas and adopted laws — pilot city: <strong>San Mateo</strong></div>
 
   <details class="about" open>
-    <summary>What is this? <span class="about-hint">(for anyone new to the project)</span></summary>
+    <summary>What is this? <span class="about-hint">(explained simply)</span></summary>
     <div class="about-body">
-      <p><strong>The problem:</strong> San Mateo County has the Bay Area's highest rate of
-      cities without a state-certified Housing Element — which is exactly the condition under
-      which incumbent homeowners and NIMBY groups can use procedural tools (discretionary design
-      review, CEQA threats, ballot-box supermajority requirements) to block or delay new housing,
-      pushing prices up. This tool is a companion to the county's <em>Builder's Remedy Checker</em>
-      project: where that app answers "can I build here," this one answers
-      "what's happening right now, and what can an ordinary person actually do about it."</p>
-      <p><strong>Where the data comes from:</strong> every item below is a real, sourced
-      record — a planning-commission agenda item or an adopted city law — pulled directly from
-      each city's own public meeting website. Nothing here is written by AI: this page just reads
-      those saved records fresh every time you load it, so what you see is exactly what's been
-      collected, no more and no less. Hover or tap any underlined term (like CEQA) for a
-      plain-language explainer.</p>
-      <p><strong>The four tabs:</strong> <em>Participate</em> is the action-first view — a
-      timeline of write-a-letter and attend-a-meeting actions tied to real, not-yet-held
-      meetings. <em>Latest Builds</em> is the full feed of agenda items. <em>Policy Actions</em>
-      groups adopted city laws by which incumbent tactic they match, if any. <em>Cross-Reference</em>
-      pairs each housing project with the policy actions plausibly shaping its outcome.</p>
-      <p><strong>Coverage today:</strong> a handful of cities across San Mateo County (San Mateo
-      is the pilot) so far — this is an early, growing slice of the county's full record, not a
-      complete picture yet.</p>
+      <p><strong>The big problem:</strong> in San Mateo County, it's really hard to build new
+      homes. More people want homes than there are homes to live in — and when that happens,
+      prices go up, like when there's only one ice cream truck for a whole neighborhood. Some
+      people who already own a home actually WANT it to stay that way, so they use tricky rules
+      and slow-downs (hover any underlined word, like CEQA, to see how) to stop or delay new
+      homes from being built. This page is a companion to the county's
+      <em>Builder's Remedy Checker</em> project: that app answers "can I build here?" — this one
+      answers "what's happening right now, and what can I actually do about it?"</p>
+      <p><strong>Where does this info come from?</strong> Every item on this page is real —
+      pulled straight from each city's own public meeting website. Nothing here is made up by AI.
+      This page just re-reads those saved records every time you open it, so you always see
+      exactly what's been collected — no more, no less. Hover or tap any underlined word for a
+      simple explanation.</p>
+      <p><strong>The four tabs:</strong> <em>Participate</em> shows what you can DO right now —
+      letters to write and meetings to attend. <em>Latest Builds</em> is every housing project
+      we know about. <em>Policy Actions</em> groups city laws by which sneaky tactic they match,
+      if any. <em>Cross-Reference</em> connects each housing project to the laws that might
+      affect it.</p>
+      <p><strong>How much do we have so far?</strong> Just a handful of cities right now (San
+      Mateo is where we started) — this grows over time, it's not the whole picture yet.</p>
     </div>
   </details>
 
@@ -536,6 +541,28 @@ function mechanismBadge(mechanism) {
   return \`<span class="badge mechanism \${hueClass}">\${MECHANISM_LABELS[mechanism] || mechanism}</span>\`;
 }
 
+const RISK_LABELS = { confirmed: "Confirmed risk", possible: "Possible risk", "not-evidenced": "Not evidenced" };
+
+function challengeChecklistHtml(build) {
+  const rows = buildChallengeChecklist(build, DATA.ordinances);
+  const confirmedCount = rows.filter((r) => r.risk === "confirmed").length;
+  const possibleCount = rows.filter((r) => r.risk === "possible").length;
+  return \`
+    <details class="checklist">
+      <summary>⚠️ Things that could get in the way — \${confirmedCount} confirmed, \${possibleCount} possible</summary>
+      <div class="checklist-body">
+        \${rows.map((r) => \`
+          <div class="checklist-row">
+            <span class="badge risk-\${r.risk}">\${RISK_LABELS[r.risk]}</span>
+            <div class="checklist-row-text">
+              <span class="mech-label">\${MECHANISM_LABELS[r.mechanism]}:</span> \${escapeHtml(r.rationale)}
+              \${r.citation ? \`<div class="checklist-row-cite">Evidence: \${escapeHtml(r.citation)}</div>\` : ""}
+            </div>
+          </div>\`).join("")}
+      </div>
+    </details>\`;
+}
+
 function buildCard(i) {
   return \`
     <div class="card \${i.canParticipate ? "participate-card" : ""}">
@@ -551,6 +578,7 @@ function buildCard(i) {
       <div class="item-text">\${escapeHtml(i.text)}</div>
       <a href="\${i.sourceUrl}" target="_blank" rel="noopener">\${i.canParticipate ? "Agenda / how to comment ↗" : "Source ↗"}</a>
       <div class="citizen">Source record: \${i.citizen}</div>
+      \${challengeChecklistHtml(i)}
     </div>\`;
 }
 
@@ -607,7 +635,7 @@ function render() {
     }
     const order = [...Object.keys(MECHANISM_LABELS), "uncategorized"];
     pPanel.innerHTML =
-      '<div class="intro">Adopted city laws grouped by which incumbent tactic they match — CEQA litigation, ballot-box supermajority, discretionary design review, subjective design standards, PLA-linked appeals, restrictive lot-size/setback/height rules, or fiscal zoning. "Uncategorized" laws don\\'t match any of those tactics — often because they actually enable more housing (like SB9 or ADU rules) rather than blocking it.</div>' +
+      '<div class="intro">City laws sorted by which sneaky tactic they match — hover any underlined word to learn what it means. Laws marked "Uncategorized" don\\'t match any tactic — usually because they actually HELP build more homes (like SB9 or ADU rules) instead of blocking them.</div>' +
       order.filter(k => groups.has(k)).map(k => \`
         <div class="mechanism-group \${MECHANISM_HUE_CLASS[k] || ""}">
           <h3>\${k === "uncategorized" ? "Uncategorized / enabling" : MECHANISM_LABELS[k]} (\${groups.get(k).length})</h3>
@@ -649,7 +677,7 @@ function renderParticipateTimeline(city, builds) {
 
   if (!upcoming.length) {
     partPanel.innerHTML =
-      '<div class="intro">The fundamental problem this tracks: incumbents using procedural leverage (design-review denials, CEQA threats, ballot-box supermajority requirements) to block or delay housing supply, which pushes prices up.</div>' +
+      '<div class="intro">Here\\'s the big idea: when there aren\\'t enough homes for everyone who needs one, prices go up. Some people try to slow down or stop new homes using tricky rules (hover an underlined word to see how). This page tracks that.</div>' +
       '<div class="empty">No upcoming (not-yet-held) meetings on record right now' + (city === ALL_CITIES ? "" : " for " + city) + ' — check back as new meeting agendas are added.</div>';
     return;
   }
@@ -678,7 +706,7 @@ function renderParticipateTimeline(city, builds) {
   entries.sort((a, b) => (a.sortDate === b.sortDate ? (a.type === "letter" ? -1 : 1) : (a.sortDate < b.sortDate ? -1 : 1)));
 
   partPanel.innerHTML =
-    '<div class="intro">The fundamental problem this tracks: incumbents using procedural leverage (design-review denials, CEQA threats, ballot-box supermajority requirements) to block or delay housing supply, which pushes prices up. Two concrete actions, plotted on a timeline: <strong>write a letter</strong> now, ahead of the meeting, and <strong>show up to speak</strong> on the meeting date.</div>' +
+    '<div class="intro">Here\\'s the big idea: when there aren\\'t enough homes for everyone who needs one, prices go up. Some people try to slow down or stop new homes using tricky rules (hover an underlined word to see how). Two things you can actually do: <strong>write a letter</strong> now, before the meeting, and <strong>show up to speak</strong> on the day of the meeting.</div>' +
     '<div class="timeline">' + entries.map(timelineEntry).join("") + '</div>';
 }
 
